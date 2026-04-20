@@ -6,7 +6,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QMessageBox
 from PySide6.QtGui import QFont
 
 
@@ -40,17 +40,12 @@ def main():
             _win_refs.append(win)
         except Exception:
             import traceback
-backend-demo
-            from PySide6.QtWidgets import QMessageBox
             tb = traceback.format_exc()
             with open("error.log", "w") as f:
                 f.write(tb)
-            QMessageBox.critical(None, "Lỗi khởi động", f"Không thể mở cửa sổ chính:\n{tb[:400]}")
-
+            QMessageBox.critical(None, "Lỗi khởi động",
+                                 f"Không thể mở cửa sổ chính:\n{tb[:400]}")
             traceback.print_exc()
-            with open("error.log", "w") as f:
-                traceback.print_exc(file=f)
-main
 
     login.login_success.connect(on_login_success)
     login.exec()
