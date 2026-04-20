@@ -143,12 +143,105 @@ def export_lecturers_excel(
 
 
 @router.get("/export/pdf")
-def export_lecturers_pdf(_: dict = Depends(get_current_user)) -> StreamingResponse:
-    # Placeholder PDF bytes.
-    content = b"%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF"
+def export_lecturers_pdf(
+    search: str = "",
+    department_id: int | None = None,
+    degree: str = "",
+    position: str = "",
+    gender: str = "",
+    status_filter: str = Query("", alias="status"),
+    _: dict = Depends(get_current_user),
+) -> StreamingResponse:
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.units import cm
+    from reportlab.lib import colors
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    import os
+
+    data = STORE.list_lecturers(
+        page=1, size=10000,
+        search=search, department_id=department_id,
+        degree=degree, position=position,
+        gender=gender, status=status_filter,
+    )
+
+    font_candidates = [
+        "C:/Windows/Fonts/Arial.ttf",
+        "C:/Windows/Fonts/calibri.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+    ]
+    font_name = "Helvetica"
+    for fp in font_candidates:
+        if os.path.exists(fp):
+            try:
+                pdfmetrics.registerFont(TTFont("ViFont", fp))
+                font_name = "ViFont"
+            except Exception:
+                pass
+            break
+
+    buf = BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=landscape(A4),
+                            leftMargin=1.5*cm, rightMargin=1.5*cm,
+                            topMargin=1.5*cm, bottomMargin=1.5*cm)
+
+    title_style = ParagraphStyle("title", fontName=font_name, fontSize=14,
+                                  spaceAfter=10, alignment=1)
+    cell_style  = ParagraphStyle("cell",  fontName=font_name, fontSize=8,
+                                  leading=10)
+
+    STATUS_MAP = {"active": "Dang day", "inactive": "Nghi viec", "on_leave": "Nghi phep"}
+    GENDER_MAP = {"male": "Nam", "female": "Nu", "other": "Khac"}
+
+    header = ["Ma GV", "Ho va ten", "Email", "SDT", "Gioi tinh",
+              "Hoc vi", "Chuc vu", "Khoa/Bo mon", "Trang thai"]
+    rows = [header]
+    for row in data["items"]:
+        dep_name = (row.get("department") or {}).get("name", "")
+        rows.append([
+            Paragraph(row.get("employee_code", ""), cell_style),
+            Paragraph(row.get("full_name", ""), cell_style),
+            Paragraph(row.get("email", ""), cell_style),
+            Paragraph(row.get("phone", "") or "", cell_style),
+            GENDER_MAP.get(row.get("gender", ""), row.get("gender", "")),
+            row.get("degree", ""),
+            Paragraph(row.get("position", "") or "", cell_style),
+            Paragraph(dep_name, cell_style),
+            STATUS_MAP.get(row.get("status", ""), row.get("status", "")),
+        ])
+
+    col_widths = [2.2*cm, 4.5*cm, 5.5*cm, 2.8*cm, 2.0*cm, 2.2*cm, 3.0*cm, 4.0*cm, 2.2*cm]
+    table = Table(rows, colWidths=col_widths, repeatRows=1)
+    table.setStyle(TableStyle([
+        ("BACKGROUND",  (0, 0), (-1, 0), colors.HexColor("#1F6FEB")),
+        ("TEXTCOLOR",   (0, 0), (-1, 0), colors.white),
+        ("FONTNAME",    (0, 0), (-1, 0), font_name),
+        ("FONTSIZE",    (0, 0), (-1, 0), 9),
+        ("FONTNAME",    (0, 1), (-1, -1), font_name),
+        ("FONTSIZE",    (0, 1), (-1, -1), 8),
+        ("ALIGN",       (0, 0), (-1, 0), "CENTER"),
+        ("VALIGN",      (0, 0), (-1, -1), "MIDDLE"),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F6F8FA")]),
+        ("GRID",        (0, 0), (-1, -1), 0.4, colors.HexColor("#D0D7DE")),
+        ("TOPPADDING",  (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ("LEFTPADDING", (0, 0), (-1, -1), 5),
+    ]))
+
+    elements = [
+        Paragraph("DANH SACH GIANG VIEN", title_style),
+        Spacer(1, 0.3*cm),
+        table,
+    ]
+    doc.build(elements)
+    buf.seek(0)
     filename = f"lecturers_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
     return StreamingResponse(
-        BytesIO(content),
+        buf,
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

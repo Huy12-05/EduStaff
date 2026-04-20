@@ -1,7 +1,8 @@
 # screens/schedule_screen.py — Fluent teaching schedule management screen
 
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QTableWidgetItem, QHeaderView, QStackedWidget,
+    QWidget, QVBoxLayout, QHBoxLayout, QTableWidgetItem, QHeaderView,
+    QStackedWidget, QLabel,
 )
 from PySide6.QtCore import Qt, QThread, Signal, QTime
 
@@ -10,6 +11,7 @@ from qfluentwidgets import (
     ComboBox,
     TableWidget, ElevatedCardWidget, BodyLabel,
     TimePicker, FluentIcon as FIF, SegmentedWidget,
+    MessageBoxBase, SubtitleLabel, CaptionLabel,
 )
 
 from components.cards import SectionHeader
@@ -22,6 +24,157 @@ from components.toast import toast_success, toast_error
 from widgets.schedule_calendar import WeeklyScheduleCalendar
 import api.schedule_api as schedule_api
 import api.lecturer_api as lecturer_api
+
+
+# ── Slot detail worker ────────────────────────────────────────────
+
+class LoadSlotDetailWorker(QThread):
+    finished = Signal(dict)
+    error    = Signal(str)
+
+    def __init__(self, start_time: str, end_time: str, semester: str, academic_year: str):
+        super().__init__()
+        self.start_time    = start_time
+        self.end_time      = end_time
+        self.semester      = semester
+        self.academic_year = academic_year
+
+    def run(self):
+        try:
+            result = schedule_api.get_week_slot_detail(
+                self.start_time, self.end_time, self.semester, self.academic_year
+            )
+            self.finished.emit(result)
+        except Exception as e:
+            self.error.emit(str(e))
+
+
+# ── Slot detail dialog ────────────────────────────────────────────
+
+class SlotDetailDialog(MessageBoxBase):
+    DAY_NAMES = {
+        "Mon": "Thứ 2", "Tue": "Thứ 3", "Wed": "Thứ 4",
+        "Thu": "Thứ 5", "Fri": "Thứ 6", "Sat": "Thứ 7", "Sun": "CN",
+        "2": "Thứ 2", "3": "Thứ 3", "4": "Thứ 4", "5": "Thứ 5",
+        "6": "Thứ 6", "7": "Thứ 7", "8": "CN",
+    }
+
+    def __init__(self, start_time: str, end_time: str,
+                 semester: str, academic_year: str, parent=None):
+        super().__init__(parent)
+        self._start = start_time
+        self._end   = end_time
+        self._semester = semester
+        self._academic_year = academic_year
+        self._worker = None
+        self._build_ui()
+        self._load()
+
+    def _build_ui(self):
+        slot_label = f"{self._start} – {self._end}"
+        ctx = []
+        if self._semester:      ctx.append(self._semester)
+        if self._academic_year: ctx.append(f"Năm {self._academic_year}")
+        ctx_text = "  •  ".join(ctx) if ctx else ""
+
+        title = SubtitleLabel(f"Ca {slot_label}")
+        self.viewLayout.addWidget(title)
+        if ctx_text:
+            self.viewLayout.addWidget(CaptionLabel(ctx_text))
+
+        # Filter bar
+        filter_row = QHBoxLayout()
+        filter_row.setSpacing(8)
+        filter_row.addWidget(CaptionLabel("Lọc thứ:"))
+        self._day_filter = ComboBox()
+        self._day_filter.setFixedWidth(110)
+        self._day_filter.addItem("Tất cả", userData="")
+        for code, label in [("Mon","Thứ 2"),("Tue","Thứ 3"),("Wed","Thứ 4"),
+                             ("Thu","Thứ 5"),("Fri","Thứ 6"),("Sat","Thứ 7"),("Sun","CN")]:
+            self._day_filter.addItem(label, userData=code)
+        self._day_filter.currentIndexChanged.connect(self._apply_filter)
+        filter_row.addWidget(self._day_filter)
+        filter_row.addStretch()
+        self._count_label = CaptionLabel("")
+        filter_row.addWidget(self._count_label)
+        self.viewLayout.addLayout(filter_row)
+
+        # Table
+        COLS = ["Thứ", "Giảng Viên", "Mã GV", "Khoa", "Mã Môn", "Tên Môn", "Phòng"]
+        self._table = TableWidget(self)
+        self._table.setColumnCount(len(COLS))
+        self._table.setHorizontalHeaderLabels(COLS)
+        self._table.verticalHeader().setVisible(False)
+        self._table.setAlternatingRowColors(True)
+        self._table.setEditTriggers(TableWidget.EditTrigger.NoEditTriggers)
+        self._table.setSelectionBehavior(TableWidget.SelectionBehavior.SelectRows)
+        self._table.setShowGrid(False)
+        self._table.setBorderVisible(True)
+        self._table.setBorderRadius(8)
+        hh = self._table.horizontalHeader()
+        for i in range(len(COLS)):
+            hh.setSectionResizeMode(i, QHeaderView.ResizeMode.ResizeToContents)
+        hh.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        hh.setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
+        self._table.setMinimumSize(700, 320)
+        self.viewLayout.addWidget(self._table)
+
+        self._status_label = CaptionLabel("Đang tải...")
+        self._status_label.setStyleSheet("color:#8B949E;")
+        self.viewLayout.addWidget(self._status_label)
+
+        self.yesButton.setText("Đóng")
+        self.cancelButton.hide()
+
+    def _load(self):
+        self._worker = LoadSlotDetailWorker(
+            self._start, self._end, self._semester, self._academic_year
+        )
+        self._worker.finished.connect(self._on_loaded)
+        self._worker.error.connect(self._on_error)
+        self._worker.start()
+
+    def _on_loaded(self, result: dict):
+        self._all_items = result.get("items", [])
+        self._apply_filter()
+
+    def _apply_filter(self):
+        day_code = self._day_filter.currentData() if hasattr(self, "_day_filter") else ""
+        items = self._all_items if hasattr(self, "_all_items") else []
+        if day_code:
+            items = [s for s in items if str(s.get("day_of_week", "")) == day_code]
+
+        self._table.setRowCount(0)
+        for sched in sorted(items, key=lambda s: str(s.get("day_of_week", ""))):
+            row = self._table.rowCount()
+            self._table.insertRow(row)
+            self._table.setRowHeight(row, 36)
+            lect = sched.get("lecturer") or {}
+            dep  = (lect.get("department") or {}).get("name", "")
+            cells = [
+                (self.DAY_NAMES.get(str(sched.get("day_of_week", "")), str(sched.get("day_of_week", ""))),
+                 Qt.AlignmentFlag.AlignCenter),
+                (lect.get("full_name", "—"),   Qt.AlignmentFlag.AlignLeft),
+                (lect.get("employee_code", ""), Qt.AlignmentFlag.AlignCenter),
+                (dep,                           Qt.AlignmentFlag.AlignLeft),
+                (sched.get("subject_code", ""), Qt.AlignmentFlag.AlignCenter),
+                (sched.get("subject_name", ""), Qt.AlignmentFlag.AlignLeft),
+                (sched.get("room", ""),         Qt.AlignmentFlag.AlignCenter),
+            ]
+            for col, (text, align) in enumerate(cells):
+                item = QTableWidgetItem(text)
+                item.setTextAlignment(int(align | Qt.AlignmentFlag.AlignVCenter))
+                self._table.setItem(row, col, item)
+
+        total = len(self._all_items) if hasattr(self, "_all_items") else 0
+        shown = self._table.rowCount()
+        self._count_label.setText(
+            f"{shown} / {total} ca" if day_code else f"{total} ca"
+        )
+        self._status_label.hide()
+
+    def _on_error(self, msg: str):
+        self._status_label.setText(f"Lỗi: {msg}")
 
 
 # ── Workers ───────────────────────────────────────────────────────
@@ -388,6 +541,7 @@ class ScheduleScreen(QWidget):
         calendar_v = QVBoxLayout(calendar_card)
         calendar_v.setContentsMargins(0, 0, 0, 0)
         self._calendar_view = WeeklyScheduleCalendar(calendar_card)
+        self._calendar_view.slot_clicked.connect(self._on_slot_clicked)
         calendar_v.addWidget(self._calendar_view)
 
         self._content_stack = QStackedWidget(self)
@@ -573,6 +727,12 @@ class ScheduleScreen(QWidget):
         w.error.connect(w.deleteLater)
         w.start()
         self._del_worker = w
+
+    def _on_slot_clicked(self, start_time: str, end_time: str):
+        semester      = self._semester_filter.currentData() or ""
+        academic_year = self._year_filter.currentData() or ""
+        dlg = SlotDetailDialog(start_time, end_time, semester, academic_year, parent=self)
+        dlg.exec()
 
     def _on_error(self, msg: str):
         self._loading.hide()

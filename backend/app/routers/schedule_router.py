@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.core.deps import get_current_user, require_admin
 from app.schemas.schedule import ScheduleCreate, ScheduleUpdate
@@ -6,6 +6,23 @@ from app.services.audit_service import log_action
 from app.services.store import STORE
 
 router = APIRouter(prefix="/schedules", tags=["Schedules"])
+
+
+@router.get("/week/detail")
+def get_week_slot_detail(
+    start_time: str = Query(..., description="HH:MM"),
+    end_time: str = Query(..., description="HH:MM"),
+    semester: str = "",
+    academic_year: str = "",
+    _: dict = Depends(get_current_user),
+) -> dict:
+    items = STORE.get_slot_detail(
+        start_time=start_time,
+        end_time=end_time,
+        semester=semester,
+        academic_year=academic_year,
+    )
+    return {"items": items, "total": len(items)}
 
 
 @router.get("")

@@ -545,6 +545,30 @@ class DatabaseStore:
             mapped = [self._map_schedule(row) for row in rows]
             return self._paginate_items(mapped, total=total, page=page, size=size)
 
+    def get_slot_detail(
+        self,
+        start_time: str,
+        end_time: str,
+        semester: str = "",
+        academic_year: str = "",
+    ) -> list[dict]:
+        t_start = _parse_time(start_time)
+        t_end   = _parse_time(end_time)
+        if t_start is None or t_end is None:
+            return []
+        with SessionLocal() as db:
+            query = (
+                select(Schedule)
+                .options(joinedload(Schedule.lecturer).joinedload(Lecturer.department))
+                .where(Schedule.start_time == t_start, Schedule.end_time == t_end)
+            )
+            if semester:
+                query = query.where(Schedule.semester == semester)
+            if academic_year:
+                query = query.where(Schedule.academic_year == str(academic_year))
+            rows = db.scalars(query.order_by(Schedule.day_of_week.asc())).all()
+            return [self._map_schedule(r) for r in rows]
+
     def get_schedule(self, schedule_id: int) -> dict | None:
         with SessionLocal() as db:
             row = db.scalar(
