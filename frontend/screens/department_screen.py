@@ -228,11 +228,19 @@ class DepartmentScreen(QWidget):
         hh.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
         hh.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
         hh.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
+backend-demo
         self._table.setColumnWidth(0, 56)
         self._table.setColumnWidth(1, 90)
         self._table.setColumnWidth(4, 70)
         self._table.setColumnWidth(5, 110 if self.is_admin else 56)
         self._table.verticalHeader().setDefaultSectionSize(38)
+
+        self._table.setColumnWidth(0, 44)
+        self._table.setColumnWidth(1, 90)
+        self._table.setColumnWidth(4, 70)
+        self._table.setColumnWidth(5, 110 if self.is_admin else 56)
+        self._table.verticalHeader().setDefaultSectionSize(44)
+main
 
         self._empty = EmptyStateWidget("Không tìm thấy khoa nào", on_retry=self.refresh)
         self._empty.hide()
@@ -244,8 +252,11 @@ class DepartmentScreen(QWidget):
         self._loading = LoadingOverlay(self)
 
     def refresh(self):
+backend-demo
         if self._worker is not None and self._worker.isRunning():
             return
+
+main
         search = self._search_input.text().strip()
         self._loading.show()
         self._worker = LoadDeptWorker(search)
@@ -260,7 +271,11 @@ class DepartmentScreen(QWidget):
         for i, dept in enumerate(items):
             row = self._table.rowCount()
             self._table.insertRow(row)
+backend-demo
             self._table.setRowHeight(row, 38)
+
+            self._table.setRowHeight(row, 44)
+main
             cells = [
                 (str(i + 1),                                    Qt.AlignmentFlag.AlignCenter),
                 (dept.get("code", ""),                          Qt.AlignmentFlag.AlignCenter),
@@ -322,9 +337,13 @@ class DepartmentScreen(QWidget):
             return
         w = DeleteDeptWorker(dept["id"])
         w.finished.connect(lambda: (toast_success(self.window(), "Đã xóa khoa!"), self.refresh()))
+backend-demo
         w.finished.connect(w.deleteLater)
         w.error.connect(lambda msg: toast_error(self.window(), msg))
         w.error.connect(w.deleteLater)
+
+        w.error.connect(lambda msg: toast_error(self.window(), msg))
+main
         w.start()
         self._del_worker = w
 
@@ -332,12 +351,14 @@ class DepartmentScreen(QWidget):
         self._loading.hide()
         toast_error(self.window(), msg)
 
+backend-demo
     def showEvent(self, event):
         super().showEvent(event)
         if not getattr(self, "_loaded", False):
             self._loaded = True
             self.refresh()
 
+ main
     def resizeEvent(self, event):
         self._loading.resize(self.size())
         super().resizeEvent(event)

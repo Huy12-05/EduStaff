@@ -33,7 +33,10 @@ class Badge(QLabel):
     Pill-shaped coloured badge.
     Usage: Badge("Hoạt động", "active")
            Badge("Custom", bg="#1A3A2A", fg="#3FB950")
+backend-demo
            Badge.status("active")
+
+main
     """
 
     def __init__(self, text: str, preset: str = "gray",
@@ -49,6 +52,7 @@ class Badge(QLabel):
             "border-radius:10px; padding:2px 10px;"
             "font-size:11px; font-weight:600; letter-spacing:0.3px;"
         )
+backend-demo
 
     @staticmethod
     def status(value: str) -> "Badge":
@@ -80,3 +84,5 @@ class Badge(QLabel):
                 "update": ("Cập nhật", "update"), "delete": ("Xóa", "delete")}
         label, preset = _map.get(value, (value or "—", "gray"))
         return Badge(label, preset)
+
+main

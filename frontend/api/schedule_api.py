@@ -33,6 +33,7 @@ def update_schedule(schedule_id: int, data: dict) -> dict:
 
 def delete_schedule(schedule_id: int):
     return client.delete(f"/schedules/{schedule_id}")
+backend-demo
 
 
 def get_week_slot_detail(
@@ -45,3 +46,5 @@ def get_week_slot_detail(
     if semester:      params["semester"]      = semester
     if academic_year: params["academic_year"] = academic_year
     return client.get("/schedules/week/detail", params=params)
+
+main

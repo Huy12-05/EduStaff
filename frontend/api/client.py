@@ -35,6 +35,7 @@ def _handle(resp: requests.Response) -> Any:
         raise APIError("Không tìm thấy tài nguyên.", 404)
     if not resp.ok:
         try:
+backend-demo
             body = resp.json()
             detail = body.get("detail", resp.text)
             # Pydantic 422: detail is a list of validation errors
@@ -44,6 +45,9 @@ def _handle(resp: requests.Response) -> Any:
                     loc = " → ".join(str(x) for x in err.get("loc", [])[1:])
                     msgs.append(f"{loc}: {err.get('msg', '')}" if loc else err.get("msg", ""))
                 detail = "\n".join(msgs)
+
+            detail = resp.json().get("detail", resp.text)
+main
         except Exception:
             detail = resp.text
         raise APIError(str(detail), resp.status_code)

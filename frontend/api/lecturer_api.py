@@ -11,7 +11,10 @@ def get_lecturers(
     degree: str = "",
     position: str = "",
     gender: str = "",
+backend-demo
     status: str = "",
+
+main
 ) -> dict:
     params: dict = {"page": page, "size": size}
     if search:           params["search"]        = search
@@ -19,7 +22,10 @@ def get_lecturers(
     if degree:           params["degree"]        = degree
     if position:         params["position"]      = position
     if gender:           params["gender"]        = gender
+backend-demo
     if status:           params["status"]        = status
+
+main
     return client.get("/lecturers", params=params)
 
 
@@ -43,6 +49,7 @@ def upload_avatar(lecturer_id: int, file_bytes: bytes, filename: str) -> dict:
     return client.post_file(f"/lecturers/{lecturer_id}/avatar", filename, file_bytes)
 
 
+backend-demo
 def export_excel(
     search: str = "",
     department_id: int = None,
@@ -77,3 +84,8 @@ def export_pdf(
     params = {k: v for k, v in params.items() if v is not None and v != ""}
     qs = urlencode(params)
     return client.get_file(f"/lecturers/export/pdf{'?' + qs if qs else ''}")
+
+def export_excel(filters: dict = None) -> bytes:
+    params = filters or {}
+    return client.get_file(f"/lecturers/export?{'&'.join(f'{k}={v}' for k,v in params.items())}")
+main

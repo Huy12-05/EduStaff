@@ -547,6 +547,7 @@ class LecturerScreen(QWidget):
         self._table.setBorderRadius(8)
 
         hh = self._table.horizontalHeader()
+backend-demo
         hh.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)       # #
         hh.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)       # Mã GV
         hh.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)     # Họ & Tên
@@ -567,6 +568,26 @@ class LecturerScreen(QWidget):
         self._table.setColumnWidth(9, 116 if self.is_admin else 52)
         # Row height 38px — compact nhưng vẫn đủ để badge hiển thị
         self._table.verticalHeader().setDefaultSectionSize(38)
+
+        hh.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+        hh.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
+        hh.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        hh.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        hh.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
+        hh.setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)
+        hh.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)
+        hh.setSectionResizeMode(7, QHeaderView.ResizeMode.ResizeToContents)
+        hh.setSectionResizeMode(8, QHeaderView.ResizeMode.Fixed)
+        hh.setSectionResizeMode(9, QHeaderView.ResizeMode.Fixed)
+
+        self._table.setColumnWidth(0, 44)
+        self._table.setColumnWidth(1, 80)
+        self._table.setColumnWidth(4, 110)
+        self._table.setColumnWidth(6, 60)
+        self._table.setColumnWidth(8, 108)
+        self._table.setColumnWidth(9, 120 if self.is_admin else 56)
+        self._table.verticalHeader().setDefaultSectionSize(44)
+main
         self._table.doubleClicked.connect(
             lambda idx: self._on_view(self._row_data[idx.row()])
             if 0 <= idx.row() < len(self._row_data) else None
@@ -623,8 +644,11 @@ class LecturerScreen(QWidget):
         }
 
     def _load_data(self, page: int = 1):
+backend-demo
         if self._worker is not None and self._worker.isRunning():
             return
+
+main
         self._current_page = page
         filters = self._build_filters()
         filters["page"] = page
@@ -646,7 +670,11 @@ class LecturerScreen(QWidget):
         pages = result.get("pages", 1)
         self._row_data = items
         self._populate_table(items)
+backend-demo
         self._pagination.update_state(self._current_page, pages, total)
+
+        self._pagination.update(self._current_page, pages, total)
+main
         if items:
             self._table.show()
             self._empty.hide()
@@ -660,7 +688,11 @@ class LecturerScreen(QWidget):
         for i, lect in enumerate(items):
             row = self._table.rowCount()
             self._table.insertRow(row)
+backend-demo
             self._table.setRowHeight(row, 38)
+
+            self._table.setRowHeight(row, 44)
+main
             dept = lect.get("department") or {}
             cells = [
                 (str(offset + i + 1),             Qt.AlignmentFlag.AlignCenter),
@@ -788,9 +820,13 @@ class LecturerScreen(QWidget):
             return
         self._del_worker = DeleteLecturerWorker(lect["id"])
         self._del_worker.finished.connect(self._on_deleted)
+ backend-demo
         self._del_worker.finished.connect(self._del_worker.deleteLater)
         self._del_worker.error.connect(lambda msg: toast_error(self.window(), msg))
         self._del_worker.error.connect(self._del_worker.deleteLater)
+
+        self._del_worker.error.connect(lambda msg: toast_error(self.window(), msg))
+main
         self._del_worker.start()
 
     def _on_deleted(self):
@@ -838,12 +874,14 @@ class LecturerScreen(QWidget):
         except Exception as e:
             toast_error(self.window(), str(e))
 
+ backend-demo
     def showEvent(self, event):
         super().showEvent(event)
         if not getattr(self, "_loaded", False):
             self._loaded = True
             self.refresh()
 
+main
     def resizeEvent(self, event):
         self._loading.resize(self.size())
         super().resizeEvent(event)
