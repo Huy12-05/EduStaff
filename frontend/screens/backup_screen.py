@@ -255,6 +255,11 @@ class BackupScreen(QWidget):
     # ── Create backup ──────────────────────────────────────────────
 
     def _on_create_backup(self):
+backend-demo
+        if self._backup_worker is not None and self._backup_worker.isRunning():
+            return
+
+main
         self._backup_btn.setEnabled(False)
         self._backup_bar.show()
         self._backup_bar.start()
@@ -286,6 +291,11 @@ class BackupScreen(QWidget):
     # ── List backups ───────────────────────────────────────────────
 
     def refresh(self):
+backend-demo
+        if self._list_worker is not None and self._list_worker.isRunning():
+            return
+
+main
         self._loading.show()
         self._list_worker = ListBackupsWorker()
         self._list_worker.finished.connect(self._on_list_loaded)
@@ -366,6 +376,15 @@ class BackupScreen(QWidget):
             except Exception as e:
                 toast_error(self.window(), str(e))
 
+backend-demo
+    def showEvent(self, event):
+        super().showEvent(event)
+        if not getattr(self, "_loaded", False):
+            self._loaded = True
+            self.refresh()
+
+
+ main
     def resizeEvent(self, event):
         self._loading.resize(self.size())
         super().resizeEvent(event)

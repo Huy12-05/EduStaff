@@ -1,0 +1,47 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: edustaff-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: edustaff
+      MYSQL_USER: edustaff
+      MYSQL_PASSWORD: edustaff_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uedustaff", "-pedustaff_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: edustaff-backend
+    restart: unless-stopped
+    environment:
+      APP_NAME: EduStaff Backend
+      APP_ENV: dev
+      DEBUG: "true"
+      DATABASE_URL: mysql+pymysql://edustaff:edustaff_password@mysql:3306/edustaff
+      JWT_SECRET_KEY: change-me
+      JWT_ALGORITHM: HS256
+      JWT_EXPIRE_MINUTES: 480
+      CORS_ORIGINS: '["*"]'
+      BACKUP_DIR: /app/backups
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./assets:/app/backups
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  mysql_data:

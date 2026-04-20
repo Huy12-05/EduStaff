@@ -33,6 +33,10 @@ class Badge(QLabel):
     Pill-shaped coloured badge.
     Usage: Badge("Hoạt động", "active")
            Badge("Custom", bg="#1A3A2A", fg="#3FB950")
+backend-demo
+           Badge.status("active")
+
+main
     """
 
     def __init__(self, text: str, preset: str = "gray",
@@ -48,3 +52,37 @@ class Badge(QLabel):
             "border-radius:10px; padding:2px 10px;"
             "font-size:11px; font-weight:600; letter-spacing:0.3px;"
         )
+backend-demo
+
+    @staticmethod
+    def status(value: str) -> "Badge":
+        _map = {"active": ("Đang dạy", "active"), "inactive": ("Nghỉ việc", "inactive"),
+                "on_leave": ("Nghỉ phép", "on_leave")}
+        label, preset = _map.get(value, (value or "—", "gray"))
+        return Badge(label, preset)
+
+    @staticmethod
+    def degree(value: str) -> "Badge":
+        _map = {"GS": "blue", "PGS": "purple", "TS": "info", "ThS": "green"}
+        return Badge(value or "—", _map.get(value, "gray"))
+
+    @staticmethod
+    def role(value: str) -> "Badge":
+        _map = {"admin": ("Quản trị", "admin"), "staff": ("Nhân viên", "staff")}
+        label, preset = _map.get(value, (value or "—", "gray"))
+        return Badge(label, preset)
+
+    @staticmethod
+    def account_status(is_active) -> "Badge":
+        if is_active:
+            return Badge("Hoạt động", "active")
+        return Badge("Bị khóa", "inactive")
+
+    @staticmethod
+    def action(value: str) -> "Badge":
+        _map = {"login": ("Đăng nhập", "login"), "create": ("Tạo mới", "create"),
+                "update": ("Cập nhật", "update"), "delete": ("Xóa", "delete")}
+        label, preset = _map.get(value, (value or "—", "gray"))
+        return Badge(label, preset)
+
+main

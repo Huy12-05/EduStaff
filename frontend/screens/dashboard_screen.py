@@ -188,6 +188,11 @@ class DashboardScreen(SmoothScrollArea):
 
     # ── Refresh ────────────────────────────────────────────────────
     def refresh(self):
+backend-demo
+        if self._worker is not None and self._worker.isRunning():
+            return
+
+main
         self._loading.show()
         self._worker = DashboardWorker()
         self._worker.finished.connect(self._on_loaded)
@@ -313,6 +318,15 @@ class DashboardScreen(SmoothScrollArea):
             card.set_value("!")
         toast_error(self.window(), msg)
 
+backend-demo
+    def showEvent(self, event):
+        super().showEvent(event)
+        if not getattr(self, "_loaded", False):
+            self._loaded = True
+            self.refresh()
+
+
+main
     def resizeEvent(self, event):
         self._loading.resize(self.size())
         super().resizeEvent(event)
