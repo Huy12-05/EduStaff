@@ -297,6 +297,8 @@ class AccountScreen(QWidget):
         self._loading = LoadingOverlay(self)
 
     def refresh(self):
+        if self._worker is not None and self._worker.isRunning():
+            return
         self._loading.show()
         self._worker = LoadAccountsWorker(
             self._search_input.text().strip(),
@@ -394,7 +396,9 @@ class AccountScreen(QWidget):
             return
         w = ToggleAccountWorker(acc["id"])
         w.finished.connect(lambda _: (toast_success(self.window(), f"Đã {status} tài khoản!"), self.refresh()))
+        w.finished.connect(w.deleteLater)
         w.error.connect(lambda msg: toast_error(self.window(), msg))
+        w.error.connect(w.deleteLater)
         w.start()
         self._toggle_worker = w
 

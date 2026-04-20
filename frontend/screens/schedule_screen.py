@@ -372,11 +372,12 @@ class ScheduleScreen(QWidget):
         hh = self._table.horizontalHeader()
         for i in range(len(COLS)):
             hh.setSectionResizeMode(i, QHeaderView.ResizeMode.ResizeToContents)
-        hh.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
-        hh.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        hh.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
-        self._table.setColumnWidth(0, 44)
-        self._table.verticalHeader().setDefaultSectionSize(44)
+        hh.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)   # #
+        hh.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch) # Giảng Viên
+        hh.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch) # Tên Môn
+        # Col 0: 56px đủ cho 3 chữ số
+        self._table.setColumnWidth(0, 56)
+        self._table.verticalHeader().setDefaultSectionSize(38)
 
         self._empty = EmptyStateWidget("Không tìm thấy lịch giảng dạy nào", on_retry=self.refresh)
         self._empty.hide()
@@ -442,6 +443,8 @@ class ScheduleScreen(QWidget):
         }
 
     def _load_data(self, page: int = 1):
+        if self._worker is not None and self._worker.isRunning():
+            return
         if self._view_mode == "calendar":
             page = 1
         self._current_page = page
@@ -476,7 +479,7 @@ class ScheduleScreen(QWidget):
         for i, s in enumerate(items):
             row = self._table.rowCount()
             self._table.insertRow(row)
-            self._table.setRowHeight(row, 44)
+            self._table.setRowHeight(row, 38)
             lect = s.get("lecturer") or {}
             cells = [
                 (str(offset + i + 1),                     Qt.AlignmentFlag.AlignCenter),
@@ -565,7 +568,9 @@ class ScheduleScreen(QWidget):
             return
         w = DeleteScheduleWorker(sched["id"])
         w.finished.connect(lambda: (toast_success(self.window(), "Đã xóa lịch!"), self.refresh()))
+        w.finished.connect(w.deleteLater)
         w.error.connect(lambda msg: toast_error(self.window(), msg))
+        w.error.connect(w.deleteLater)
         w.start()
         self._del_worker = w
 

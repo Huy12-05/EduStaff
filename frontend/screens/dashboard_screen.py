@@ -188,6 +188,8 @@ class DashboardScreen(SmoothScrollArea):
 
     # ── Refresh ────────────────────────────────────────────────────
     def refresh(self):
+        if self._worker is not None and self._worker.isRunning():
+            return
         self._loading.show()
         self._worker = DashboardWorker()
         self._worker.finished.connect(self._on_loaded)

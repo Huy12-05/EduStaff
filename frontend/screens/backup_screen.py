@@ -255,6 +255,8 @@ class BackupScreen(QWidget):
     # ── Create backup ──────────────────────────────────────────────
 
     def _on_create_backup(self):
+        if self._backup_worker is not None and self._backup_worker.isRunning():
+            return
         self._backup_btn.setEnabled(False)
         self._backup_bar.show()
         self._backup_bar.start()
@@ -286,6 +288,8 @@ class BackupScreen(QWidget):
     # ── List backups ───────────────────────────────────────────────
 
     def refresh(self):
+        if self._list_worker is not None and self._list_worker.isRunning():
+            return
         self._loading.show()
         self._list_worker = ListBackupsWorker()
         self._list_worker.finished.connect(self._on_list_loaded)

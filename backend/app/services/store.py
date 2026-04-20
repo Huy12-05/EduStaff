@@ -1,6 +1,7 @@
 from datetime import date, datetime, time
 
 from sqlalchemy import delete, func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
 
 from app.core.security import hash_password
@@ -440,17 +441,26 @@ class DatabaseStore:
                 employee_code=data["employee_code"],
                 full_name=data["full_name"],
                 email=data["email"],
-                phone=data["phone"],
+                phone=data.get("phone"),
                 gender=data["gender"],
                 date_of_birth=_parse_date(data.get("date_of_birth")),
                 degree=data["degree"],
-                position=data["position"],
+                position=data.get("position"),
                 department_id=data["department_id"],
                 hire_date=_parse_date(data.get("hire_date")),
                 status=data["status"],
             )
             db.add(lecturer)
-            db.commit()
+            try:
+                db.commit()
+            except IntegrityError as exc:
+                db.rollback()
+                msg = str(exc.orig)
+                if "employee_code" in msg:
+                    raise ValueError(f"Mã giảng viên '{data['employee_code']}' đã tồn tại.")
+                if "email" in msg:
+                    raise ValueError(f"Email '{data['email']}' đã được sử dụng.")
+                raise ValueError("Dữ liệu bị trùng lặp, vui lòng kiểm tra lại.")
             db.refresh(lecturer)
             lecturer = db.scalar(
                 select(Lecturer)
@@ -476,7 +486,16 @@ class DatabaseStore:
             if data.get("hire_date") is not None:
                 lecturer.hire_date = _parse_date(data["hire_date"])
 
-            db.commit()
+            try:
+                db.commit()
+            except IntegrityError as exc:
+                db.rollback()
+                msg = str(exc.orig)
+                if "employee_code" in msg:
+                    raise ValueError(f"Mã giảng viên đã tồn tại.")
+                if "email" in msg:
+                    raise ValueError(f"Email đã được sử dụng.")
+                raise ValueError("Dữ liệu bị trùng lặp, vui lòng kiểm tra lại.")
             lecturer = db.scalar(
                 select(Lecturer)
                 .options(joinedload(Lecturer.department))

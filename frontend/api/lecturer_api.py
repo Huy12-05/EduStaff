@@ -44,5 +44,7 @@ def upload_avatar(lecturer_id: int, file_bytes: bytes, filename: str) -> dict:
 
 
 def export_excel(filters: dict = None) -> bytes:
-    params = filters or {}
-    return client.get_file(f"/lecturers/export?{'&'.join(f'{k}={v}' for k,v in params.items())}")
+    from urllib.parse import urlencode
+    params = {k: v for k, v in (filters or {}).items() if v is not None and v != ""}
+    qs = urlencode(params)
+    return client.get_file(f"/lecturers/export{'?' + qs if qs else ''}")

@@ -183,6 +183,8 @@ class AuditLogScreen(QWidget):
         return f
 
     def _load_data(self, page: int = 1):
+        if self._worker is not None and self._worker.isRunning():
+            return
         self._current_page = page
         filters = self._build_filters()
         filters["page"] = page

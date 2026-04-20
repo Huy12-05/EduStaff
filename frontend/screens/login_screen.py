@@ -231,6 +231,9 @@ class LoginScreen(QDialog):
     # ── Slots ─────────────────────────────────────────────────────
 
     def _on_login(self):
+        if self._worker is not None and self._worker.isRunning():
+            return
+
         username = self._username_input.text().strip()
         password = self._password_input.text()
 
@@ -247,6 +250,7 @@ class LoginScreen(QDialog):
         self._worker = LoginWorker(username, password)
         self._worker.success.connect(self._on_success)
         self._worker.error.connect(self._on_error)
+        self._worker.finished.connect(self._worker.deleteLater)
         self._worker.start()
 
     def _on_success(self, token_resp: dict, user_info: dict):

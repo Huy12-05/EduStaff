@@ -150,12 +150,14 @@ class MainWindow(FluentWindow):
         box.cancelButton.setText("Hủy")
         if box.exec():
             import api.auth_api as auth_api
+            from PySide6.QtWidgets import QDialog
             auth_api.logout()
             self.close()
             from screens.login_screen import LoginScreen
             login = LoginScreen()
             login.login_success.connect(self._reopen)
-            login.exec()
+            if login.exec() != QDialog.DialogCode.Accepted:
+                QApplication.instance().quit()
 
     def _reopen(self, user_info: dict):
         self._new_win = MainWindow(user_info)
