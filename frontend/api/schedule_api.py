@@ -1,4 +1,4 @@
-# api/schedule_api.py — Teaching schedule CRUD endpoints
+# api/schedule_api.py - Teaching schedule CRUD endpoints
 
 import api.client as client
 
@@ -12,10 +12,14 @@ def get_schedules(
     academic_year: str = "",
 ) -> dict:
     params: dict = {"page": page, "size": size}
-    if lecturer_id:   params["lecturer_id"]  = lecturer_id
-    if day_of_week:   params["day_of_week"]  = day_of_week
-    if semester:      params["semester"]     = semester
-    if academic_year: params["academic_year"] = academic_year
+    if lecturer_id:
+        params["lecturer_id"] = lecturer_id
+    if day_of_week:
+        params["day_of_week"] = day_of_week
+    if semester:
+        params["semester"] = semester
+    if academic_year:
+        params["academic_year"] = academic_year
     return client.get("/schedules", params=params)
 
 
@@ -33,7 +37,6 @@ def update_schedule(schedule_id: int, data: dict) -> dict:
 
 def delete_schedule(schedule_id: int):
     return client.delete(f"/schedules/{schedule_id}")
-backend-demo
 
 
 def get_week_slot_detail(
@@ -43,8 +46,8 @@ def get_week_slot_detail(
     academic_year: str = "",
 ) -> dict:
     params: dict = {"start_time": start_time, "end_time": end_time}
-    if semester:      params["semester"]      = semester
-    if academic_year: params["academic_year"] = academic_year
+    if semester:
+        params["semester"] = semester
+    if academic_year:
+        params["academic_year"] = academic_year
     return client.get("/schedules/week/detail", params=params)
-
-main

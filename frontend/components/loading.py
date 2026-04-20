@@ -1,21 +1,18 @@
-backend-demo
-# components/loading.py — Compact loading overlay with fade animation
+# components/loading.py - Compact loading overlay with fade animation
 
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QFrame, QGraphicsOpacityEffect
-from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve
-from qfluentwidgets import IndeterminateProgressRing, CaptionLabel
-
-# components/loading.py — Semi-transparent loading overlay
-
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QFrame
-from PySide6.QtCore import Qt
-from qfluentwidgets import IndeterminateProgressBar, BodyLabel
-main
+from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt
+from PySide6.QtWidgets import (
+    QFrame,
+    QGraphicsOpacityEffect,
+    QHBoxLayout,
+    QVBoxLayout,
+    QWidget,
+)
+from qfluentwidgets import CaptionLabel, IndeterminateProgressRing
 
 
 class LoadingOverlay(QWidget):
     """
-backend-demo
     Semi-transparent overlay with a circular spinner card and 0.2s fade transitions.
     Attaches to parent widget; call resize() whenever parent resizes.
     """
@@ -58,7 +55,7 @@ backend-demo
         self._ring.setFixedSize(26, 26)
         self._ring.setStrokeWidth(3)
 
-        self._label = CaptionLabel("Đang tải...", card)
+        self._label = CaptionLabel("Dang tai...", card)
         self._label.setStyleSheet(
             "color:#8B949E; background:transparent; font-size:12px;"
         )
@@ -66,54 +63,12 @@ backend-demo
 
         card_h.addWidget(self._ring)
         card_h.addWidget(self._label)
-
         outer.addWidget(card)
-
-    Full-size translucent overlay with a spinner.
-    Attach to a parent widget, resize() whenever parent resizes.
-    """
-
-    def __init__(self, parent: QWidget):
-        super().__init__(parent)
-        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, False)
-        self.setStyleSheet("background: rgba(13,17,23,0.75);")
-        self.hide()
-
-        layout = QVBoxLayout(self)
-        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.setSpacing(14)
-
-        # Spinner card
-        card = QFrame(self)
-        card.setObjectName("loadingCard")
-        card.setStyleSheet(
-            "QFrame#loadingCard{"
-            "background:rgba(22,27,34,0.96);"
-            "border-radius:16px;"
-            "border:1px solid #30363D;}"
-        )
-        card_v = QVBoxLayout(card)
-        card_v.setContentsMargins(32, 24, 32, 24)
-        card_v.setSpacing(12)
-
-        self._bar = IndeterminateProgressBar(card)
-        self._bar.setFixedWidth(180)
-
-        self._label = BodyLabel("Đang tải...", card)
-        self._label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._label.setStyleSheet("color:#8B949E; background:transparent;")
-
-        card_v.addWidget(self._bar)
-        card_v.addWidget(self._label)
-
-        layout.addWidget(card)
-main
 
     def set_text(self, text: str):
         self._label.setText(text)
 
     def show(self):
-backend-demo
         self._hiding = False
         self.resize(self.parent().size())
         self.raise_()
@@ -136,8 +91,3 @@ backend-demo
         if self._hiding:
             super().hide()
             self._hiding = False
-
-        self.resize(self.parent().size())
-        self.raise_()
-        super().show()
-main

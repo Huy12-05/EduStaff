@@ -183,11 +183,8 @@ class AuditLogScreen(QWidget):
         return f
 
     def _load_data(self, page: int = 1):
-backend-demo
         if self._worker is not None and self._worker.isRunning():
             return
-
-main
         self._current_page = page
         filters = self._build_filters()
         filters["page"] = page
@@ -243,11 +240,7 @@ main
             ip_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self._table.setItem(row, 6, ip_item)
 
-backend-demo
-        self._pagination.update_state(self._current_page, pages, total)
-
-        self._pagination.update(self._current_page, pages, total)
-main
+        self._pagination.update_state(self._current_page, pages, 30, total)
         if items:
             self._table.show()
             self._empty.hide()
@@ -278,14 +271,11 @@ main
         self._loading.hide()
         toast_error(self.window(), msg)
 
-backend-demo
     def showEvent(self, event):
         super().showEvent(event)
         if not getattr(self, "_loaded", False):
             self._loaded = True
             self.refresh()
-
-main
     def resizeEvent(self, event):
         self._loading.resize(self.size())
         super().resizeEvent(event)

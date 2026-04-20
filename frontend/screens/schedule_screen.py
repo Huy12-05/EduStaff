@@ -1,12 +1,7 @@
 # screens/schedule_screen.py — Fluent teaching schedule management screen
 
 from PySide6.QtWidgets import (
-backend-demo
-    QWidget, QVBoxLayout, QHBoxLayout, QTableWidgetItem, QHeaderView,
-    QStackedWidget, QLabel,
-
-    QWidget, QVBoxLayout, QHBoxLayout, QTableWidgetItem, QHeaderView, QStackedWidget,
-main
+    QWidget, QVBoxLayout, QHBoxLayout, QTableWidgetItem, QHeaderView, QStackedWidget
 )
 from PySide6.QtCore import Qt, QThread, Signal, QTime
 
@@ -15,10 +10,7 @@ from qfluentwidgets import (
     ComboBox,
     TableWidget, ElevatedCardWidget, BodyLabel,
     TimePicker, FluentIcon as FIF, SegmentedWidget,
- backend-demo
     MessageBoxBase, SubtitleLabel, CaptionLabel,
-
-main
 )
 
 from components.cards import SectionHeader
@@ -33,7 +25,6 @@ import api.schedule_api as schedule_api
 import api.lecturer_api as lecturer_api
 
 
-backend-demo
 # ── Slot detail worker ────────────────────────────────────────────
 
 class LoadSlotDetailWorker(QThread):
@@ -184,8 +175,6 @@ class SlotDetailDialog(MessageBoxBase):
     def _on_error(self, msg: str):
         self._status_label.setText(f"Lỗi: {msg}")
 
-
-main
 # ── Workers ───────────────────────────────────────────────────────
 
 class LoadSchedulesWorker(QThread):
@@ -534,20 +523,11 @@ class ScheduleScreen(QWidget):
         hh = self._table.horizontalHeader()
         for i in range(len(COLS)):
             hh.setSectionResizeMode(i, QHeaderView.ResizeMode.ResizeToContents)
-backend-demo
-        hh.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)   # #
-        hh.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch) # Giảng Viên
-        hh.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch) # Tên Môn
-        # Col 0: 56px đủ cho 3 chữ số
-        self._table.setColumnWidth(0, 56)
-        self._table.verticalHeader().setDefaultSectionSize(38)
-
         hh.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         hh.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         hh.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
         self._table.setColumnWidth(0, 44)
         self._table.verticalHeader().setDefaultSectionSize(44)
- main
 
         self._empty = EmptyStateWidget("Không tìm thấy lịch giảng dạy nào", on_retry=self.refresh)
         self._empty.hide()
@@ -558,9 +538,7 @@ backend-demo
         calendar_v = QVBoxLayout(calendar_card)
         calendar_v.setContentsMargins(0, 0, 0, 0)
         self._calendar_view = WeeklyScheduleCalendar(calendar_card)
-backend-demo
         self._calendar_view.slot_clicked.connect(self._on_slot_clicked)
- main
         calendar_v.addWidget(self._calendar_view)
 
         self._content_stack = QStackedWidget(self)
@@ -616,10 +594,8 @@ backend-demo
         }
 
     def _load_data(self, page: int = 1):
-backend-demo
         if self._worker is not None and self._worker.isRunning():
             return
- main
         if self._view_mode == "calendar":
             page = 1
         self._current_page = page
@@ -654,11 +630,7 @@ backend-demo
         for i, s in enumerate(items):
             row = self._table.rowCount()
             self._table.insertRow(row)
-backend-demo
-            self._table.setRowHeight(row, 38)
-
             self._table.setRowHeight(row, 44)
-main
             lect = s.get("lecturer") or {}
             cells = [
                 (str(offset + i + 1),                     Qt.AlignmentFlag.AlignCenter),
@@ -683,11 +655,7 @@ main
         if self._view_mode == "table":
             self._content_stack.setCurrentIndex(0)
             self._pagination.show()
-backend-demo
-            self._pagination.update_state(self._current_page, pages, total)
-
-            self._pagination.update(self._current_page, pages, total)
-main
+            self._pagination.update_state(self._current_page, pages, 20, total)
             if items:
                 self._table.show()
                 self._empty.hide()
@@ -751,7 +719,6 @@ main
             return
         w = DeleteScheduleWorker(sched["id"])
         w.finished.connect(lambda: (toast_success(self.window(), "Đã xóa lịch!"), self.refresh()))
-backend-demo
         w.finished.connect(w.deleteLater)
         w.error.connect(lambda msg: toast_error(self.window(), msg))
         w.error.connect(w.deleteLater)
@@ -763,25 +730,15 @@ backend-demo
         academic_year = self._year_filter.currentData() or ""
         dlg = SlotDetailDialog(start_time, end_time, semester, academic_year, parent=self)
         dlg.exec()
-
-
-        w.error.connect(lambda msg: toast_error(self.window(), msg))
-        w.start()
-        self._del_worker = w
-
-main
     def _on_error(self, msg: str):
         self._loading.hide()
         toast_error(self.window(), msg)
 
-backend-demo
     def showEvent(self, event):
         super().showEvent(event)
         if not getattr(self, "_loaded", False):
             self._loaded = True
             self.refresh()
-
- main
     def resizeEvent(self, event):
         self._loading.resize(self.size())
         super().resizeEvent(event)

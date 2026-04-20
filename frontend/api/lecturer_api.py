@@ -1,4 +1,6 @@
-# api/lecturer_api.py — Lecturer CRUD endpoints
+# api/lecturer_api.py - Lecturer CRUD endpoints
+
+from urllib.parse import urlencode
 
 import api.client as client
 
@@ -11,21 +13,21 @@ def get_lecturers(
     degree: str = "",
     position: str = "",
     gender: str = "",
-backend-demo
     status: str = "",
-
-main
 ) -> dict:
     params: dict = {"page": page, "size": size}
-    if search:           params["search"]        = search
-    if department_id:    params["department_id"] = department_id
-    if degree:           params["degree"]        = degree
-    if position:         params["position"]      = position
-    if gender:           params["gender"]        = gender
-backend-demo
-    if status:           params["status"]        = status
-
-main
+    if search:
+        params["search"] = search
+    if department_id:
+        params["department_id"] = department_id
+    if degree:
+        params["degree"] = degree
+    if position:
+        params["position"] = position
+    if gender:
+        params["gender"] = gender
+    if status:
+        params["status"] = status
     return client.get("/lecturers", params=params)
 
 
@@ -49,7 +51,6 @@ def upload_avatar(lecturer_id: int, file_bytes: bytes, filename: str) -> dict:
     return client.post_file(f"/lecturers/{lecturer_id}/avatar", filename, file_bytes)
 
 
-backend-demo
 def export_excel(
     search: str = "",
     department_id: int = None,
@@ -58,9 +59,13 @@ def export_excel(
     gender: str = "",
     status: str = "",
 ) -> bytes:
-    from urllib.parse import urlencode
-    params = {"search": search, "degree": degree, "position": position,
-              "gender": gender, "status": status}
+    params = {
+        "search": search,
+        "degree": degree,
+        "position": position,
+        "gender": gender,
+        "status": status,
+    }
     if department_id:
         params["department_id"] = department_id
     params = {k: v for k, v in params.items() if v is not None and v != ""}
@@ -76,16 +81,15 @@ def export_pdf(
     gender: str = "",
     status: str = "",
 ) -> bytes:
-    from urllib.parse import urlencode
-    params = {"search": search, "degree": degree, "position": position,
-              "gender": gender, "status": status}
+    params = {
+        "search": search,
+        "degree": degree,
+        "position": position,
+        "gender": gender,
+        "status": status,
+    }
     if department_id:
         params["department_id"] = department_id
     params = {k: v for k, v in params.items() if v is not None and v != ""}
     qs = urlencode(params)
     return client.get_file(f"/lecturers/export/pdf{'?' + qs if qs else ''}")
-
-def export_excel(filters: dict = None) -> bytes:
-    params = filters or {}
-    return client.get_file(f"/lecturers/export?{'&'.join(f'{k}={v}' for k,v in params.items())}")
-main
