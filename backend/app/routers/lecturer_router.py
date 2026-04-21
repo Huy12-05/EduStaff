@@ -44,7 +44,7 @@ def create_lecturer(payload: LecturerCreate, admin: dict = Depends(require_admin
         row = STORE.create_lecturer(payload.model_dump())
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
-    log_action("create", "lecturer", admin["username"], f"Tao giang vien {row['employee_code']}", row["id"])
+    log_action("create", "lecturer", admin["username"], f"Tạo giảng viên {row['employee_code']}", row["id"])
     return row
 
 
@@ -55,8 +55,8 @@ def update_lecturer(lecturer_id: int, payload: LecturerUpdate, admin: dict = Dep
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
     if not row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay giang vien.")
-    log_action("update", "lecturer", admin["username"], f"Cap nhat giang vien {lecturer_id}", lecturer_id)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy giảng viên.")
+    log_action("update", "lecturer", admin["username"], f"Cập nhật giảng viên {lecturer_id}", lecturer_id)
     return row
 
 
@@ -64,17 +64,17 @@ def update_lecturer(lecturer_id: int, payload: LecturerUpdate, admin: dict = Dep
 def delete_lecturer(lecturer_id: int, admin: dict = Depends(require_admin)) -> dict[str, str]:
     ok = STORE.delete_lecturer(lecturer_id)
     if not ok:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay giang vien.")
-    log_action("delete", "lecturer", admin["username"], f"Xoa giang vien {lecturer_id}", lecturer_id)
-    return {"message": "Xoa giang vien thanh cong."}
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy giảng viên.")
+    log_action("delete", "lecturer", admin["username"], f"Xóa giảng viên {lecturer_id}", lecturer_id)
+    return {"message": "Xóa giảng viên thành công."}
 
 
 @router.post("/{lecturer_id}/avatar")
 def upload_avatar(lecturer_id: int, _: dict = Depends(require_admin)) -> dict[str, str]:
     # Placeholder de giu hop dong API voi frontend.
     if not STORE.get_lecturer(lecturer_id):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay giang vien.")
-    return {"message": "Upload avatar thanh cong (placeholder)."}
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy giảng viên.")
+    return {"message": "Upload avatar thành công."}
 
 
 @router.get("/export")
@@ -251,5 +251,5 @@ def export_lecturers_pdf(
 def get_lecturer(lecturer_id: int, _: dict = Depends(get_current_user)) -> dict:
     row = STORE.get_lecturer(lecturer_id)
     if not row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay giang vien.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy giảng viên.")
     return row

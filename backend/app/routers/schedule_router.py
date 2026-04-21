@@ -49,14 +49,14 @@ def list_schedules(
 def get_schedule(schedule_id: int, _: dict = Depends(get_current_user)) -> dict:
     row = STORE.get_schedule(schedule_id)
     if not row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay lich giang day.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy lịch giảng dạy.")
     return row
 
 
 @router.post("")
 def create_schedule(payload: ScheduleCreate, admin: dict = Depends(require_admin)) -> dict:
     row = STORE.create_schedule(payload.model_dump())
-    log_action("create", "schedule", admin["username"], f"Tao lich day {row['id']}", row["id"])
+    log_action("create", "schedule", admin["username"], f"Tạo lịch dạy {row['id']}", row["id"])
     return row
 
 
@@ -64,8 +64,8 @@ def create_schedule(payload: ScheduleCreate, admin: dict = Depends(require_admin
 def update_schedule(schedule_id: int, payload: ScheduleUpdate, admin: dict = Depends(require_admin)) -> dict:
     row = STORE.update_schedule(schedule_id, payload.model_dump(exclude_unset=True))
     if not row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay lich giang day.")
-    log_action("update", "schedule", admin["username"], f"Cap nhat lich day {schedule_id}", schedule_id)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy lịch giảng dạy.")
+    log_action("update", "schedule", admin["username"], f"Cập nhật lịch dạy {schedule_id}", schedule_id)
     return row
 
 
@@ -73,6 +73,6 @@ def update_schedule(schedule_id: int, payload: ScheduleUpdate, admin: dict = Dep
 def delete_schedule(schedule_id: int, admin: dict = Depends(require_admin)) -> dict[str, str]:
     ok = STORE.delete_schedule(schedule_id)
     if not ok:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay lich giang day.")
-    log_action("delete", "schedule", admin["username"], f"Xoa lich day {schedule_id}", schedule_id)
-    return {"message": "Xoa lich giang day thanh cong."}
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy lịch giảng dạy.")
+    log_action("delete", "schedule", admin["username"], f"Xóa lịch dạy {schedule_id}", schedule_id)
+    return {"message": "Xóa lịch giảng dạy thành công."}

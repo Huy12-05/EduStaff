@@ -25,14 +25,14 @@ def list_departments(
 def get_department(department_id: int, _: dict = Depends(get_current_user)) -> dict:
     row = STORE.get_department(department_id)
     if not row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay khoa.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy khoa.")
     return row
 
 
 @router.post("")
 def create_department(payload: DepartmentCreate, admin: dict = Depends(require_admin)) -> dict:
     row = STORE.create_department(payload.model_dump())
-    log_action("create", "department", admin["username"], f"Tao khoa {row['name']}", row["id"])
+    log_action("create", "department", admin["username"], f"Tạo khoa {row['name']}", row["id"])
     return row
 
 
@@ -40,8 +40,8 @@ def create_department(payload: DepartmentCreate, admin: dict = Depends(require_a
 def update_department(department_id: int, payload: DepartmentUpdate, admin: dict = Depends(require_admin)) -> dict:
     row = STORE.update_department(department_id, payload.model_dump(exclude_unset=True))
     if not row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay khoa.")
-    log_action("update", "department", admin["username"], f"Cap nhat khoa {department_id}", department_id)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy khoa.")
+    log_action("update", "department", admin["username"], f"Cập nhật khoa {department_id}", department_id)
     return row
 
 
@@ -52,6 +52,6 @@ def delete_department(department_id: int, admin: dict = Depends(require_admin)) 
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
     if not ok:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay khoa.")
-    log_action("delete", "department", admin["username"], f"Xoa khoa {department_id}", department_id)
-    return {"message": "Xoa khoa thanh cong."}
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy khoa.")
+    log_action("delete", "department", admin["username"], f"Xóa khoa {department_id}", department_id)
+    return {"message": "Xóa khoa thành công."}

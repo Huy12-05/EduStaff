@@ -14,12 +14,12 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 def login(form_data: OAuth2PasswordRequestForm = Depends()) -> dict:
     user = STORE.find_account_by_username(form_data.username)
     if not user or not verify_password(form_data.password, user["password_hash"]):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sai username hoac password.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sai username hoặc mật khẩu.")
     if not user.get("is_active"):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Tai khoan da bi khoa.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Tài khoản đã bị khóa.")
 
     access_token = create_access_token({"sub": user["username"], "role": user["role"]})
-    log_action("login", "account", user["username"], "Dang nhap he thong", user["id"])
+    log_action("login", "account", user["username"], "Đăng nhập hệ thống", user["id"])
     return {"access_token": access_token, "token_type": "bearer"}
 
 
@@ -37,7 +37,7 @@ def get_me(user: dict = Depends(get_current_user)) -> dict:
 @router.post("/change-password")
 def change_password(payload: ChangePasswordRequest, user: dict = Depends(get_current_user)) -> dict[str, str]:
     if not verify_password(payload.old_password, user["password_hash"]):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mat khau cu khong dung.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mật khẩu cũ không đúng.")
     STORE.change_password(user["username"], payload.new_password)
-    log_action("update", "account", user["username"], "Doi mat khau", user["id"])
-    return {"message": "Doi mat khau thanh cong."}
+    log_action("update", "account", user["username"], "Đổi mật khẩu", user["id"])
+    return {"message": "Đổi mật khẩu thành công."}

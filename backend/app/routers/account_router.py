@@ -17,16 +17,16 @@ def list_accounts(search: str = "", role: str = "", is_active: bool | None = Non
 def get_account(account_id: int, admin: dict = Depends(require_admin)) -> dict:
     row = STORE.get_account(account_id)
     if not row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay tai khoan.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy tài khoản.")
     return row
 
 
 @router.post("")
 def create_account(payload: AccountCreate, admin: dict = Depends(require_admin)) -> dict:
     if STORE.find_account_by_username(payload.username):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username da ton tai.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username đã tồn tại.")
     row = STORE.create_account(payload.model_dump())
-    log_action("create", "account", admin["username"], f"Tao tai khoan {row['username']}", row["id"])
+    log_action("create", "account", admin["username"], f"Tạo tài khoản {row['username']}", row["id"])
     return row
 
 
@@ -34,8 +34,8 @@ def create_account(payload: AccountCreate, admin: dict = Depends(require_admin))
 def update_account(account_id: int, payload: AccountUpdate, admin: dict = Depends(require_admin)) -> dict:
     row = STORE.update_account(account_id, payload.model_dump(exclude_unset=True))
     if not row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay tai khoan.")
-    log_action("update", "account", admin["username"], f"Cap nhat tai khoan {account_id}", account_id)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy tài khoản.")
+    log_action("update", "account", admin["username"], f"Cập nhật tài khoản {account_id}", account_id)
     return row
 
 
@@ -43,9 +43,9 @@ def update_account(account_id: int, payload: AccountUpdate, admin: dict = Depend
 def toggle_account(account_id: int, admin: dict = Depends(require_admin)) -> dict:
     row = STORE.toggle_account(account_id)
     if not row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay tai khoan.")
-    action = "Khoa" if not row.get("is_active") else "Mo khoa"
-    log_action("update", "account", admin["username"], f"{action} tai khoan {account_id}", account_id)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy tài khoản.")
+    action = "Khóa" if not row.get("is_active") else "Mở khóa"
+    log_action("update", "account", admin["username"], f"{action} tài khoản {account_id}", account_id)
     return row
 
 
@@ -53,17 +53,17 @@ def toggle_account(account_id: int, admin: dict = Depends(require_admin)) -> dic
 def reset_password(account_id: int, payload: ResetPasswordRequest, admin: dict = Depends(require_admin)) -> dict:
     row = STORE.reset_password(account_id, payload.new_password)
     if not row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay tai khoan.")
-    log_action("update", "account", admin["username"], f"Reset password tai khoan {account_id}", account_id)
-    return {"message": "Dat lai mat khau thanh cong."}
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy tài khoản.")
+    log_action("update", "account", admin["username"], f"Đặt lại mật khẩu tài khoản {account_id}", account_id)
+    return {"message": "Đặt lại mật khẩu thành công."}
 
 
 @router.delete("/{account_id}")
 def delete_account(account_id: int, admin: dict = Depends(require_admin)) -> dict[str, str]:
     if account_id == admin["id"]:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Khong the xoa tai khoan dang dang nhap.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Không thể xóa tài khoản đang đăng nhập.")
     ok = STORE.delete_account(account_id)
     if not ok:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Khong tim thay tai khoan.")
-    log_action("delete", "account", admin["username"], f"Xoa tai khoan {account_id}", account_id)
-    return {"message": "Xoa tai khoan thanh cong."}
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy tài khoản.")
+    log_action("delete", "account", admin["username"], f"Xóa tài khoản {account_id}", account_id)
+    return {"message": "Xóa tài khoản thành công."}

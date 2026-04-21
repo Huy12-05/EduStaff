@@ -141,48 +141,48 @@ class DatabaseStore:
 
             admin = Account(
                 username="admin",
-                full_name="Quan tri vien",
+                full_name="Quản trị viên",
                 role="admin",
                 is_active=True,
                 password_hash=hash_password("admin123"),
             )
             staff = Account(
                 username="staff",
-                full_name="Nhan su",
+                full_name="Nhân sự",
                 role="staff",
                 is_active=True,
                 password_hash=hash_password("staff123"),
             )
             db.add_all([admin, staff])
 
-            dep_cntt = Department(code="CNTT", name="Cong nghe Thong tin", description="Khoa CNTT")
-            dep_dtvt = Department(code="DTVT", name="Dien tu Vien thong", description="Khoa DTVT")
-            dep_qtkd = Department(code="QTKD", name="Quan tri Kinh doanh", description="Khoa QTKD")
+            dep_cntt = Department(code="CNTT", name="Công nghệ Thông tin", description="Khoa Công nghệ Thông tin")
+            dep_dtvt = Department(code="DTVT", name="Điện tử Viễn thông", description="Khoa Điện tử Viễn thông")
+            dep_qtkd = Department(code="QTKD", name="Quản trị Kinh doanh", description="Khoa Quản trị Kinh doanh")
             db.add_all([dep_cntt, dep_dtvt, dep_qtkd])
             db.flush()
 
             lec_1 = Lecturer(
                 employee_code="GV001",
-                full_name="Nguyen Van A",
+                full_name="Nguyễn Văn A",
                 email="a@university.edu.vn",
                 phone="0901000001",
                 gender="male",
                 date_of_birth=date(1980, 1, 1),
                 degree="TS",
-                position="Giang vien chinh",
+                position="Giảng viên chính",
                 department_id=dep_cntt.id,
                 hire_date=date(2010, 9, 1),
                 status="active",
             )
             lec_2 = Lecturer(
                 employee_code="GV002",
-                full_name="Tran Thi B",
+                full_name="Trần Thị B",
                 email="b@university.edu.vn",
                 phone="0901000002",
                 gender="female",
                 date_of_birth=date(1985, 3, 10),
                 degree="ThS",
-                position="Giang vien",
+                position="Giảng viên",
                 department_id=dep_dtvt.id,
                 hire_date=date(2014, 9, 1),
                 status="active",
@@ -192,7 +192,7 @@ class DatabaseStore:
 
             schedule = Schedule(
                 lecturer_id=lec_1.id,
-                subject_name="Lap trinh Python",
+                subject_name="Lập trình Python",
                 subject_code="CS101",
                 room="A101",
                 day_of_week="Mon",
@@ -373,7 +373,7 @@ class DatabaseStore:
                 )
             ) or 0
             if active_count > 0:
-                raise ValueError(f"Khoa dang co {active_count} giang vien. Chuyen giang vien truoc khi xoa khoa.")
+                raise ValueError(f"Khoa đang có {active_count} giảng viên. Chuyển giảng viên trước khi xóa khoa.")
             dep.is_deleted = True
             db.commit()
             return True
@@ -744,7 +744,7 @@ class DatabaseStore:
                 .group_by(Lecturer.degree)
                 .order_by(Lecturer.degree.asc())
             ).all()
-            return [{"degree": row[0] or "Khac", "count": row[1]} for row in rows]
+            return [{"degree": row[0] or "Khác", "count": row[1]} for row in rows]
 
     def stats_by_position(self) -> list[dict]:
         with SessionLocal() as db:
@@ -753,7 +753,7 @@ class DatabaseStore:
                 .group_by(Lecturer.position)
                 .order_by(Lecturer.position.asc())
             ).all()
-            return [{"position": row[0] or "Khong xac dinh", "count": row[1]} for row in rows]
+            return [{"position": row[0] or "Không xác định", "count": row[1]} for row in rows]
 
 
 STORE = DatabaseStore()
