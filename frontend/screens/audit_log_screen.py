@@ -220,7 +220,12 @@ class AuditLogScreen(QWidget):
             self._table.setCellWidget(row, 2, self._centered(Badge.action(log.get("action", ""))))
 
             # Entity (col 3)
-            ent = QTableWidgetItem(str(log.get("entity_type", "")).capitalize())
+            _ENTITY_VI = {
+                "lecturer": "Giảng viên", "department": "Khoa",
+                "schedule": "Lịch dạy",  "account": "Tài khoản",
+            }
+            raw_ent = str(log.get("entity_type", ""))
+            ent = QTableWidgetItem(_ENTITY_VI.get(raw_ent, raw_ent.capitalize()))
             ent.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self._table.setItem(row, 3, ent)
 
@@ -240,7 +245,7 @@ class AuditLogScreen(QWidget):
             ip_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self._table.setItem(row, 6, ip_item)
 
-        self._pagination.update_state(self._current_page, pages, 30, total)
+        self._pagination.update_state(self._current_page, pages, 30, len(items))
         if items:
             self._table.show()
             self._empty.hide()

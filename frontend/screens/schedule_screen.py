@@ -7,7 +7,7 @@ from PySide6.QtCore import Qt, QThread, Signal, QTime
 
 from qfluentwidgets import (
     PrimaryPushButton, PushButton, ToolButton,
-    ComboBox,
+    LineEdit, ComboBox,
     TableWidget, ElevatedCardWidget, BodyLabel,
     TimePicker, FluentIcon as FIF, SegmentedWidget,
     MessageBoxBase, SubtitleLabel, CaptionLabel,
@@ -526,7 +526,7 @@ class ScheduleScreen(QWidget):
         hh.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         hh.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         hh.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
-        self._table.setColumnWidth(0, 44)
+        self._table.setColumnWidth(0, 52)
         self._table.verticalHeader().setDefaultSectionSize(44)
 
         self._empty = EmptyStateWidget("Không tìm thấy lịch giảng dạy nào", on_retry=self.refresh)

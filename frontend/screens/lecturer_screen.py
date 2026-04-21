@@ -558,7 +558,7 @@ class LecturerScreen(QWidget):
         hh.setSectionResizeMode(8, QHeaderView.ResizeMode.Fixed)
         hh.setSectionResizeMode(9, QHeaderView.ResizeMode.Fixed)
 
-        self._table.setColumnWidth(0, 44)
+        self._table.setColumnWidth(0, 52)
         self._table.setColumnWidth(1, 80)
         self._table.setColumnWidth(4, 110)
         self._table.setColumnWidth(6, 60)
@@ -653,6 +653,7 @@ class LecturerScreen(QWidget):
             self._empty.show()
 
     def _populate_table(self, items: list):
+        self._table.setSortingEnabled(False)
         self._table.setRowCount(0)
         offset = (self._current_page - 1) * 20
         for i, lect in enumerate(items):
@@ -683,6 +684,8 @@ class LecturerScreen(QWidget):
             self._table.setCellWidget(row, 8, self._center(Badge.status(lect.get("status", "active"))))
             # Actions
             self._table.setCellWidget(row, 9, self._make_actions(lect))
+
+        self._table.setSortingEnabled(True)
 
     def _center(self, widget: QWidget) -> QWidget:
         c = QWidget()

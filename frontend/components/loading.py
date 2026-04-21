@@ -55,7 +55,7 @@ class LoadingOverlay(QWidget):
         self._ring.setFixedSize(26, 26)
         self._ring.setStrokeWidth(3)
 
-        self._label = CaptionLabel("Dang tai...", card)
+        self._label = CaptionLabel("Đang tải...", card)
         self._label.setStyleSheet(
             "color:#8B949E; background:transparent; font-size:12px;"
         )

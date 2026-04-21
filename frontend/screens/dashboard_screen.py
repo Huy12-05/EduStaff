@@ -232,6 +232,14 @@ class DashboardScreen(SmoothScrollArea):
                 "login": "#58A6FF", "create": "#3FB950",
                 "update": "#D29922", "delete": "#F85149"
             }
+            ACTION_VI = {
+                "login": "Đăng nhập", "create": "Tạo mới",
+                "update": "Cập nhật",  "delete": "Xóa",
+            }
+            ENTITY_VI = {
+                "lecturer": "giảng viên", "department": "khoa",
+                "schedule": "lịch dạy",  "account": "tài khoản",
+            }
             for log in recent_logs:
                 action = log.get("action", "")
                 color  = ACTION_COLORS.get(action, "#8B949E")
@@ -249,7 +257,7 @@ class DashboardScreen(SmoothScrollArea):
                 icon_l.setPixmap(
                     IconManager.get(ACTION_ICONS.get(action, "info"), color, 14).pixmap(14, 14)
                 )
-                text_l = QLabel(f"{t}  —  {user}  →  {action} {entity}")
+                text_l = QLabel(f"{t}  —  {user}  →  {ACTION_VI.get(action, action)} {ENTITY_VI.get(entity, entity)}")
                 text_l.setStyleSheet(f"color:{color}; font-size:12px;")
                 row_h.addWidget(icon_l)
                 row_h.addWidget(text_l)

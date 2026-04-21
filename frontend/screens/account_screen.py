@@ -282,7 +282,7 @@ class AccountScreen(QWidget):
         hh.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
         hh.setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)
         hh.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)
-        self._table.setColumnWidth(0, 44)
+        self._table.setColumnWidth(0, 52)
         self._table.setColumnWidth(1, 130)
         self._table.setColumnWidth(3, 90)
         self._table.setColumnWidth(4, 110)
@@ -364,18 +364,18 @@ class AccountScreen(QWidget):
 
         edit_btn = ToolButton(FIF.EDIT, c)
         edit_btn.setToolTip("Chỉnh sửa")
-        edit_btn.clicked.connect(lambda _, a=acc: self._on_edit(a))
+        edit_btn.clicked.connect(lambda checked=False, a=acc: self._on_edit(a))
         h.addWidget(edit_btn)
 
         is_active = acc.get("is_active", True)
         lock_btn = ToolButton(FIF.CANCEL if is_active else FIF.ACCEPT, c)
         lock_btn.setToolTip("Khóa tài khoản" if is_active else "Mở khóa tài khoản")
-        lock_btn.clicked.connect(lambda _, a=acc: self._on_toggle(a))
+        lock_btn.clicked.connect(lambda checked=False, a=acc: self._on_toggle(a))
         h.addWidget(lock_btn)
 
         del_btn = ToolButton(FIF.DELETE, c)
         del_btn.setToolTip("Xóa tài khoản")
-        del_btn.clicked.connect(lambda _, a=acc: self._on_delete(a))
+        del_btn.clicked.connect(lambda checked=False, a=acc: self._on_delete(a))
         h.addWidget(del_btn)
         return c
 

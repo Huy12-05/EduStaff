@@ -145,16 +145,16 @@ class WeeklyScheduleCalendar(ElevatedCardWidget):
         lines = []
         for sched in schedules:
             lecturer = (sched.get("lecturer") or {}).get("full_name", "")
-            subject = sched.get("subject_code") or sched.get("subject_name") or "Mon hoc"
+            subject = sched.get("subject_code") or sched.get("subject_name") or "Môn học"
             room = sched.get("room") or "---"
-            text = f"{subject}\nPhong {room}"
+            text = f"{subject}\nPhòng {room}"
             if lecturer:
                 text += f"\n{lecturer}"
             lines.append(text)
 
         item = QTableWidgetItem("\n\n".join(lines))
         item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        item.setToolTip("Nhan de xem tat ca giang vien trong ca nay")
+        item.setToolTip("Nhấn để xem tất cả giảng viên trong ca này")
 
         day_colors = [
             QColor(80, 130, 210, 60),
