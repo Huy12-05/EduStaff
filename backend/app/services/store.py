@@ -2,7 +2,7 @@ from datetime import date, datetime, time
 
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import selectinload
 
 from app.core.security import hash_password
 from app.db.session import SessionLocal
@@ -389,35 +389,41 @@ class DatabaseStore:
         gender: str = "",
         status: str = "",
     ) -> dict:
+        # Build filter conditions once — reused for both COUNT and data query
+        conds = [Lecturer.is_deleted.is_(False)]
+        if search:
+            kw = f"%{search}%"
+            conds.append(or_(
+                Lecturer.employee_code.ilike(kw),
+                Lecturer.full_name.ilike(kw),
+                Lecturer.email.ilike(kw),
+            ))
+        if department_id:
+            conds.append(Lecturer.department_id == department_id)
+        if degree:
+            conds.append(Lecturer.degree == degree)
+        if position:
+            conds.append(Lecturer.position == position)
+        if gender:
+            conds.append(Lecturer.gender == gender)
+        if status:
+            conds.append(Lecturer.status == status)
+
         with SessionLocal() as db:
-            query = select(Lecturer).options(joinedload(Lecturer.department)).where(Lecturer.is_deleted.is_(False))
-
-            if search:
-                keyword = f"%{search}%"
-                query = query.where(
-                    or_(
-                        Lecturer.employee_code.ilike(keyword),
-                        Lecturer.full_name.ilike(keyword),
-                        Lecturer.email.ilike(keyword),
-                    )
-                )
-            if department_id:
-                query = query.where(Lecturer.department_id == department_id)
-            if degree:
-                query = query.where(Lecturer.degree == degree)
-            if position:
-                query = query.where(Lecturer.position == position)
-            if gender:
-                query = query.where(Lecturer.gender == gender)
-            if status:
-                query = query.where(Lecturer.status == status)
-
-            total = db.scalar(select(func.count()).select_from(query.subquery())) or 0
+            # COUNT without JOIN — much faster than subquery of a joined query
+            total = db.scalar(select(func.count(Lecturer.id)).where(*conds)) or 0
             pages = max(1, (total + size - 1) // size)
             page = max(1, min(page, pages))
 
+            # selectinload: runs a second IN-query for departments instead of a JOIN
+            # avoids row inflation and is faster for paginated lists
             rows = db.scalars(
-                query.order_by(Lecturer.id.asc()).offset((page - 1) * size).limit(size)
+                select(Lecturer)
+                .options(selectinload(Lecturer.department))
+                .where(*conds)
+                .order_by(Lecturer.id.asc())
+                .offset((page - 1) * size)
+                .limit(size)
             ).all()
 
             mapped = [self._map_lecturer(row) for row in rows]
@@ -427,7 +433,7 @@ class DatabaseStore:
         with SessionLocal() as db:
             query = (
                 select(Lecturer)
-                .options(joinedload(Lecturer.department))
+                .options(selectinload(Lecturer.department))
                 .where((Lecturer.id == lecturer_id) & (Lecturer.is_deleted.is_(False)))
             )
             lecturer = db.scalar(query)
@@ -464,7 +470,7 @@ class DatabaseStore:
             db.refresh(lecturer)
             lecturer = db.scalar(
                 select(Lecturer)
-                .options(joinedload(Lecturer.department))
+                .options(selectinload(Lecturer.department))
                 .where(Lecturer.id == lecturer.id)
             )
             return self._map_lecturer(lecturer)
@@ -498,7 +504,7 @@ class DatabaseStore:
                 raise ValueError("Dữ liệu bị trùng lặp, vui lòng kiểm tra lại.")
             lecturer = db.scalar(
                 select(Lecturer)
-                .options(joinedload(Lecturer.department))
+                .options(selectinload(Lecturer.department))
                 .where(Lecturer.id == lecturer_id)
             )
             return self._map_lecturer(lecturer)
@@ -521,27 +527,37 @@ class DatabaseStore:
         semester: str = "",
         academic_year: str = "",
     ) -> dict:
+        conds = []
+        if lecturer_id:
+            conds.append(Schedule.lecturer_id == lecturer_id)
+        if day_of_week:
+            conds.append(Schedule.day_of_week == day_of_week)
+        if semester:
+            conds.append(Schedule.semester == semester)
+        if academic_year:
+            conds.append(Schedule.academic_year == str(academic_year))
+
         with SessionLocal() as db:
-            query = select(Schedule).options(
-                joinedload(Schedule.lecturer).joinedload(Lecturer.department)
-            )
-
-            if lecturer_id:
-                query = query.where(Schedule.lecturer_id == lecturer_id)
-            if day_of_week:
-                query = query.where(Schedule.day_of_week == day_of_week)
-            if semester:
-                query = query.where(Schedule.semester == semester)
-            if academic_year:
-                query = query.where(Schedule.academic_year == str(academic_year))
-
-            total = db.scalar(select(func.count()).select_from(query.subquery())) or 0
+            # Simple COUNT on schedules table — no 3-table JOIN needed
+            count_q = select(func.count(Schedule.id))
+            if conds:
+                count_q = count_q.where(*conds)
+            total = db.scalar(count_q) or 0
             pages = max(1, (total + size - 1) // size)
             page = max(1, min(page, pages))
 
-            rows = db.scalars(
-                query.order_by(Schedule.id.asc()).offset((page - 1) * size).limit(size)
-            ).all()
+            # selectinload chains: schedules → lecturers → departments (2 extra IN-queries)
+            # much faster than a 3-table JOIN for paginated results
+            data_q = (
+                select(Schedule)
+                .options(selectinload(Schedule.lecturer).selectinload(Lecturer.department))
+                .order_by(Schedule.id.asc())
+                .offset((page - 1) * size)
+                .limit(size)
+            )
+            if conds:
+                data_q = data_q.where(*conds)
+            rows = db.scalars(data_q).all()
             mapped = [self._map_schedule(row) for row in rows]
             return self._paginate_items(mapped, total=total, page=page, size=size)
 
@@ -559,7 +575,7 @@ class DatabaseStore:
         with SessionLocal() as db:
             query = (
                 select(Schedule)
-                .options(joinedload(Schedule.lecturer).joinedload(Lecturer.department))
+                .options(selectinload(Schedule.lecturer).selectinload(Lecturer.department))
                 .where(Schedule.start_time == t_start, Schedule.end_time == t_end)
             )
             if semester:
@@ -573,7 +589,7 @@ class DatabaseStore:
         with SessionLocal() as db:
             row = db.scalar(
                 select(Schedule)
-                .options(joinedload(Schedule.lecturer).joinedload(Lecturer.department))
+                .options(selectinload(Schedule.lecturer).selectinload(Lecturer.department))
                 .where(Schedule.id == schedule_id)
             )
             if not row:
@@ -597,7 +613,7 @@ class DatabaseStore:
             db.commit()
             row = db.scalar(
                 select(Schedule)
-                .options(joinedload(Schedule.lecturer).joinedload(Lecturer.department))
+                .options(selectinload(Schedule.lecturer).selectinload(Lecturer.department))
                 .where(Schedule.id == row.id)
             )
             return self._map_schedule(row)
@@ -622,7 +638,7 @@ class DatabaseStore:
             db.commit()
             row = db.scalar(
                 select(Schedule)
-                .options(joinedload(Schedule.lecturer).joinedload(Lecturer.department))
+                .options(selectinload(Schedule.lecturer).selectinload(Lecturer.department))
                 .where(Schedule.id == schedule_id)
             )
             return self._map_schedule(row)

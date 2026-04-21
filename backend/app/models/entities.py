@@ -1,6 +1,6 @@
 from datetime import date, datetime, time
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Text, Time
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, Integer, String, Text, Time
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -32,6 +32,12 @@ class Department(Base):
 
 class Lecturer(Base):
     __tablename__ = "lecturers"
+    __table_args__ = (
+        # Most queries filter by is_deleted first, then status or department
+        Index("ix_lecturers_deleted_status",   "is_deleted", "status"),
+        Index("ix_lecturers_deleted_dept",     "is_deleted", "department_id"),
+        Index("ix_lecturers_deleted_degree",   "is_deleted", "degree"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     employee_code: Mapped[str] = mapped_column(String(50), unique=True, index=True)
@@ -53,6 +59,14 @@ class Lecturer(Base):
 
 class Schedule(Base):
     __tablename__ = "schedules"
+    __table_args__ = (
+        # Common filter pair: semester + academic_year
+        Index("ix_schedules_semester_year", "semester", "academic_year"),
+        # Filter by lecturer within a semester
+        Index("ix_schedules_lecturer_semester", "lecturer_id", "semester"),
+        # Slot lookup: start_time + end_time
+        Index("ix_schedules_time_slot", "start_time", "end_time"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     lecturer_id: Mapped[int] = mapped_column(ForeignKey("lecturers.id"), index=True)
@@ -70,6 +84,11 @@ class Schedule(Base):
 
 class AuditLog(Base):
     __tablename__ = "audit_logs"
+    __table_args__ = (
+        # Dashboard/filter: created_at descending is the most common query pattern
+        Index("ix_audit_logs_created_desc", "created_at"),
+        Index("ix_audit_logs_username_action", "username", "action"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     action: Mapped[str] = mapped_column(String(50), index=True)
