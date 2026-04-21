@@ -41,7 +41,7 @@ def main():
         except Exception:
             import traceback
             tb = traceback.format_exc()
-            with open("error.log", "w") as f:
+            with open("error.log", "w", encoding="utf-8") as f:
                 f.write(tb)
             QMessageBox.critical(None, "Lỗi khởi động",
                                  f"Không thể mở cửa sổ chính:\n{tb[:400]}")

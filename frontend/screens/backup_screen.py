@@ -272,7 +272,7 @@ class BackupScreen(QWidget):
         browse_btn.clicked.connect(self._on_browse_upload)
         upload_row.addWidget(browse_btn)
 
-        self._upload_btn = PrimaryPushButton(FIF.UPLOAD, "  Tải Lên", upload_card)
+        self._upload_btn = PrimaryPushButton(FIF.SEND, "  Tải Lên", upload_card)
         self._upload_btn.setFixedHeight(36)
         self._upload_btn.setEnabled(False)
         self._upload_btn.clicked.connect(self._on_upload_backup)
