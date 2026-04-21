@@ -29,11 +29,11 @@ def clear_token():
 
 def _handle(resp: requests.Response) -> Any:
     if resp.status_code == 401:
-        raise APIError("Phien dang nhap het han. Vui long dang nhap lai.", 401)
+        raise APIError("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.", 401)
     if resp.status_code == 403:
-        raise APIError("Ban khong co quyen thuc hien thao tac nay.", 403)
+        raise APIError("Bạn không có quyền thực hiện thao tác này.", 403)
     if resp.status_code == 404:
-        raise APIError("Khong tim thay tai nguyen.", 404)
+        raise APIError("Không tìm thấy tài nguyên.", 404)
     if not resp.ok:
         try:
             body = resp.json()
@@ -56,9 +56,9 @@ def get(path: str, params: dict = None) -> Any:
     try:
         return _handle(_session.get(f"{BASE_URL}{path}", params=params, timeout=15))
     except requests.ConnectionError:
-        raise ConnectionError("Khong the ket noi den may chu. Kiem tra ket noi mang.")
+        raise ConnectionError("Không thể kết nối đến máy chủ. Kiểm tra kết nối mạng.")
     except requests.Timeout:
-        raise ConnectionError("May chu khong phan hoi (timeout).")
+        raise ConnectionError("Máy chủ không phản hồi (timeout).")
 
 
 def get_file(path: str) -> bytes:
@@ -68,35 +68,35 @@ def get_file(path: str) -> bytes:
             raise APIError(resp.text, resp.status_code)
         return resp.content
     except requests.ConnectionError:
-        raise ConnectionError("Khong the ket noi den may chu.")
+        raise ConnectionError("Không thể kết nối đến máy chủ.")
 
 
 def post(path: str, data: dict = None, json: dict = None) -> Any:
     try:
         return _handle(_session.post(f"{BASE_URL}{path}", data=data, json=json, timeout=15))
     except requests.ConnectionError:
-        raise ConnectionError("Khong the ket noi den may chu.")
+        raise ConnectionError("Không thể kết nối đến máy chủ.")
 
 
 def put(path: str, json: dict = None) -> Any:
     try:
         return _handle(_session.put(f"{BASE_URL}{path}", json=json, timeout=15))
     except requests.ConnectionError:
-        raise ConnectionError("Khong the ket noi den may chu.")
+        raise ConnectionError("Không thể kết nối đến máy chủ.")
 
 
 def patch(path: str, json: dict = None) -> Any:
     try:
         return _handle(_session.patch(f"{BASE_URL}{path}", json=json, timeout=15))
     except requests.ConnectionError:
-        raise ConnectionError("Khong the ket noi den may chu.")
+        raise ConnectionError("Không thể kết nối đến máy chủ.")
 
 
 def delete(path: str) -> Any:
     try:
         return _handle(_session.delete(f"{BASE_URL}{path}", timeout=15))
     except requests.ConnectionError:
-        raise ConnectionError("Khong the ket noi den may chu.")
+        raise ConnectionError("Không thể kết nối đến máy chủ.")
 
 
 def post_file(path: str, filename: str, file_bytes: bytes) -> Any:
@@ -105,4 +105,4 @@ def post_file(path: str, filename: str, file_bytes: bytes) -> Any:
         resp = _session.post(f"{BASE_URL}{path}", files=files, timeout=60)
         return _handle(resp)
     except requests.ConnectionError:
-        raise ConnectionError("Khong the ket noi den may chu.")
+        raise ConnectionError("Không thể kết nối đến máy chủ.")

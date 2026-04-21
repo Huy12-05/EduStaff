@@ -644,7 +644,7 @@ class LecturerScreen(QWidget):
         pages = result.get("pages", 1)
         self._row_data = items
         self._populate_table(items)
-        self._pagination.update_state(self._current_page, pages, 20, total)
+        self._pagination.update_state(self._current_page, pages, 20, len(items))
         if items:
             self._table.show()
             self._empty.hide()
@@ -703,19 +703,19 @@ class LecturerScreen(QWidget):
 
         view_btn = ToolButton(FIF.VIEW, c)
         view_btn.setToolTip("Xem chi tiết")
-        view_btn.clicked.connect(lambda _, l=lect: self._on_view(l))
+        view_btn.clicked.connect(lambda checked=False, l=lect: self._on_view(l))
         h.addWidget(view_btn)
 
         if self.is_admin:
             edit_btn = ToolButton(FIF.EDIT, c)
             edit_btn.setToolTip("Chỉnh sửa")
-            edit_btn.clicked.connect(lambda _, l=lect: self._on_edit(l))
+            edit_btn.clicked.connect(lambda checked=False, l=lect: self._on_edit(l))
             h.addWidget(edit_btn)
 
             del_btn = ToolButton(FIF.DELETE, c)
             del_btn.setToolTip("Xóa")
             del_btn.setStyleSheet("ToolButton{color:#F85149;}")
-            del_btn.clicked.connect(lambda _, l=lect: self._on_delete(l))
+            del_btn.clicked.connect(lambda checked=False, l=lect: self._on_delete(l))
             h.addWidget(del_btn)
 
         return c

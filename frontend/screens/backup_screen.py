@@ -35,7 +35,28 @@ class CreateBackupWorker(QThread):
             import api.client as client
             data = client.get_file("/backup/create")
             ts   = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            self.finished.emit(data, f"backup_{ts}.db")
+            self.finished.emit(data, f"backup_{ts}.json")
+        except Exception as e:
+            self.error.emit(str(e))
+
+
+class UploadBackupWorker(QThread):
+    finished = Signal(str)   # saved filename on server
+    error    = Signal(str)
+
+    def __init__(self, file_path: str):
+        super().__init__()
+        self._file_path = file_path
+
+    def run(self):
+        try:
+            import api.client as client
+            import os
+            with open(self._file_path, "rb") as f:
+                data = f.read()
+            filename = os.path.basename(self._file_path)
+            result = client.post_file("/backup/upload", filename, data)
+            self.finished.emit(result.get("filename", filename))
         except Exception as e:
             self.error.emit(str(e))
 
@@ -110,7 +131,7 @@ class BackupFileCard(CardWidget):
         root.addStretch()
 
         # Actions
-        restore_btn = PrimaryPushButton(FIF.SYNC, "  Restore", self)
+        restore_btn = PrimaryPushButton(FIF.SYNC, "  Phục hồi", self)
         restore_btn.setFixedHeight(32)
         restore_btn.clicked.connect(lambda: self.restore_requested.emit(self._filename))
 
@@ -145,7 +166,7 @@ class RestoreConfirmDialog(MessageBox):
             f'Nhập "RESTORE" để xác nhận:',
             parent,
         )
-        self.yesButton.setText("Xác nhận Restore")
+        self.yesButton.setText("Xác nhận Phục hồi")
         self.yesButton.setEnabled(False)
         self.cancelButton.setText("Hủy")
 
@@ -171,6 +192,8 @@ class BackupScreen(QWidget):
         self._backup_worker   = None
         self._list_worker     = None
         self._restore_worker  = None
+        self._upload_worker   = None
+        self._upload_file     = ""
         self._build_ui()
 
     def _build_ui(self):
@@ -215,6 +238,47 @@ class BackupScreen(QWidget):
         self._backup_btn.clicked.connect(self._on_create_backup)
         create_v.addWidget(self._backup_btn, alignment=Qt.AlignmentFlag.AlignLeft)
         layout.addWidget(create_card)
+
+        # ── Upload backup card ────────────────────────────────────
+        upload_card = ElevatedCardWidget()
+        upload_v = QVBoxLayout(upload_card)
+        upload_v.setContentsMargins(24, 20, 24, 20)
+        upload_v.setSpacing(12)
+
+        upload_header = QHBoxLayout()
+        upload_icon = QLabel("📂")
+        upload_icon.setStyleSheet("font-size:28px; background:transparent;")
+        upload_title_v = QVBoxLayout()
+        upload_title_v.setSpacing(2)
+        upload_title_v.addWidget(SubtitleLabel("Tải Lên File Backup"))
+        upload_title_v.addWidget(CaptionLabel("Chọn file backup từ máy cục bộ để tải lên server"))
+        upload_header.addWidget(upload_icon)
+        upload_header.addSpacing(12)
+        upload_header.addLayout(upload_title_v)
+        upload_header.addStretch()
+        upload_v.addLayout(upload_header)
+
+        self._upload_bar = IndeterminateProgressBar(upload_card)
+        self._upload_bar.hide()
+        upload_v.addWidget(self._upload_bar)
+
+        upload_row = QHBoxLayout()
+        self._upload_path_lbl = BodyLabel("Chưa chọn file")
+        self._upload_path_lbl.setStyleSheet("color:#8B949E; background:transparent;")
+        upload_row.addWidget(self._upload_path_lbl, stretch=1)
+
+        browse_btn = PushButton(FIF.FOLDER, "  Chọn File", upload_card)
+        browse_btn.setFixedHeight(36)
+        browse_btn.clicked.connect(self._on_browse_upload)
+        upload_row.addWidget(browse_btn)
+
+        self._upload_btn = PrimaryPushButton(FIF.UPLOAD, "  Tải Lên", upload_card)
+        self._upload_btn.setFixedHeight(36)
+        self._upload_btn.setEnabled(False)
+        self._upload_btn.clicked.connect(self._on_upload_backup)
+        upload_row.addWidget(self._upload_btn)
+        upload_v.addLayout(upload_row)
+        layout.addWidget(upload_card)
 
         # ── Backup list card ──────────────────────────────────────
         list_card = ElevatedCardWidget()
@@ -271,7 +335,7 @@ class BackupScreen(QWidget):
         self._backup_btn.setEnabled(True)
 
         path, _ = QFileDialog.getSaveFileName(
-            self, "Lưu file backup", suggested, "Database Files (*.db);;All Files (*)"
+            self, "Lưu file backup", suggested, "Backup Files (*.json *.db);;All Files (*)"
         )
         if path:
             with open(path, "wb") as f:
@@ -346,7 +410,7 @@ class BackupScreen(QWidget):
     def _on_restored(self):
         self._loading.hide()
         InfoBar.success(
-            "Restore thành công",
+            "Phục hồi thành công",
             "Dữ liệu đã được khôi phục. Vui lòng khởi động lại ứng dụng để áp dụng.",
             duration=6000,
             position=InfoBarPosition.TOP,
@@ -355,6 +419,47 @@ class BackupScreen(QWidget):
 
     def _on_restore_error(self, msg: str):
         self._loading.hide()
+        toast_error(self.window(), msg)
+
+    # ── Upload backup ──────────────────────────────────────────────
+
+    def _on_browse_upload(self):
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Chọn file backup", "",
+            "Backup Files (*.json *.db *.sql *.bak);;All Files (*)"
+        )
+        if path:
+            import os
+            self._upload_file = path
+            self._upload_path_lbl.setText(os.path.basename(path))
+            self._upload_btn.setEnabled(True)
+
+    def _on_upload_backup(self):
+        if not self._upload_file or (self._upload_worker and self._upload_worker.isRunning()):
+            return
+        self._upload_btn.setEnabled(False)
+        self._upload_bar.show()
+        self._upload_bar.start()
+        self._upload_worker = UploadBackupWorker(self._upload_file)
+        self._upload_worker.finished.connect(self._on_uploaded)
+        self._upload_worker.error.connect(self._on_upload_error)
+        self._upload_worker.finished.connect(self._upload_worker.deleteLater)
+        self._upload_worker.error.connect(self._upload_worker.deleteLater)
+        self._upload_worker.start()
+
+    def _on_uploaded(self, filename: str):
+        self._upload_bar.stop()
+        self._upload_bar.hide()
+        self._upload_btn.setEnabled(True)
+        self._upload_path_lbl.setText("Chưa chọn file")
+        self._upload_file = ""
+        toast_success(self.window(), f"Đã tải lên: {filename}")
+        self.refresh()
+
+    def _on_upload_error(self, msg: str):
+        self._upload_bar.stop()
+        self._upload_bar.hide()
+        self._upload_btn.setEnabled(bool(self._upload_file))
         toast_error(self.window(), msg)
 
     # ── Delete backup ──────────────────────────────────────────────

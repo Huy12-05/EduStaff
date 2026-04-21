@@ -655,7 +655,7 @@ class ScheduleScreen(QWidget):
         if self._view_mode == "table":
             self._content_stack.setCurrentIndex(0)
             self._pagination.show()
-            self._pagination.update_state(self._current_page, pages, 20, total)
+            self._pagination.update_state(self._current_page, pages, 20, len(items))
             if items:
                 self._table.show()
                 self._empty.hide()
@@ -676,10 +676,10 @@ class ScheduleScreen(QWidget):
         h.setAlignment(Qt.AlignmentFlag.AlignCenter)
         if self.is_admin:
             edit_btn = ToolButton(FIF.EDIT, c)
-            edit_btn.clicked.connect(lambda _, s=sched: self._on_edit(s))
+            edit_btn.clicked.connect(lambda checked=False, s=sched: self._on_edit(s))
             h.addWidget(edit_btn)
             del_btn = ToolButton(FIF.DELETE, c)
-            del_btn.clicked.connect(lambda _, s=sched: self._on_delete(s))
+            del_btn.clicked.connect(lambda checked=False, s=sched: self._on_delete(s))
             h.addWidget(del_btn)
         return c
 

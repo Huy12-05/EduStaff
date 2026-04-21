@@ -47,9 +47,9 @@ class Badge(QLabel):
     @staticmethod
     def status(value: str) -> "Badge":
         mapping = {
-            "active": ("Dang day", "active"),
-            "inactive": ("Nghi viec", "inactive"),
-            "on_leave": ("Nghi phep", "on_leave"),
+            "active":   ("Đang dạy",  "active"),
+            "inactive": ("Nghỉ việc", "inactive"),
+            "on_leave": ("Tạm nghỉ",  "on_leave"),
         }
         label, preset = mapping.get(value, (value or "-", "gray"))
         return Badge(label, preset)
@@ -61,21 +61,21 @@ class Badge(QLabel):
 
     @staticmethod
     def role(value: str) -> "Badge":
-        mapping = {"admin": ("Quan tri", "admin"), "staff": ("Nhan vien", "staff")}
+        mapping = {"admin": ("Quản trị", "admin"), "staff": ("Nhân viên", "staff")}
         label, preset = mapping.get(value, (value or "-", "gray"))
         return Badge(label, preset)
 
     @staticmethod
     def account_status(is_active) -> "Badge":
-        return Badge("Hoat dong", "active") if is_active else Badge("Bi khoa", "inactive")
+        return Badge("Hoạt động", "active") if is_active else Badge("Bị khóa", "inactive")
 
     @staticmethod
     def action(value: str) -> "Badge":
         mapping = {
-            "login": ("Dang nhap", "login"),
-            "create": ("Tao moi", "create"),
-            "update": ("Cap nhat", "update"),
-            "delete": ("Xoa", "delete"),
+            "login":  ("Đăng nhập", "login"),
+            "create": ("Tạo mới",   "create"),
+            "update": ("Cập nhật",  "update"),
+            "delete": ("Xóa",       "delete"),
         }
         label, preset = mapping.get(value, (value or "-", "gray"))
         return Badge(label, preset)

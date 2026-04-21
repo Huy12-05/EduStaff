@@ -78,7 +78,7 @@ class PaginationBar(QWidget):
         start = (self._current - 1) * page_size + 1
         end = start + item_count - 1
         self._info_lbl.setText(
-            f"Hien thi {start}-{end}" if item_count else "Khong co du lieu"
+            f"Hiển thị {start}–{end}" if item_count else "Không có dữ liệu"
         )
 
     def update(self, current: int, total: int,

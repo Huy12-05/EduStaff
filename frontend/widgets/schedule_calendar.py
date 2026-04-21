@@ -13,7 +13,7 @@ class WeeklyScheduleCalendar(ElevatedCardWidget):
 
     slot_clicked = Signal(str, str)
 
-    DAY_LABELS = ["Thu 2", "Thu 3", "Thu 4", "Thu 5", "Thu 6", "Thu 7", "CN"]
+    DAY_LABELS = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "CN"]
     DAY_TO_COL = {
         "Mon": 0, "Tue": 1, "Wed": 2, "Thu": 3, "Fri": 4, "Sat": 5, "Sun": 6,
         2: 0, 3: 1, 4: 2, 5: 3, 6: 4, 7: 5, 8: 6,
@@ -28,7 +28,7 @@ class WeeklyScheduleCalendar(ElevatedCardWidget):
         layout.setContentsMargins(14, 14, 14, 14)
         layout.setSpacing(10)
 
-        self._title = BodyLabel("Lich tuan - nhan vao o de xem chi tiet ca")
+        self._title = BodyLabel("Lịch tuần — nhấn vào ô để xem chi tiết ca")
         self._title.setStyleSheet("font-size:13px; font-weight:600; color:#8B949E;")
         layout.addWidget(self._title)
 
@@ -101,8 +101,8 @@ class WeeklyScheduleCalendar(ElevatedCardWidget):
         self._slot_labels = []
         self._table.clearContents()
         self._table.setRowCount(1)
-        self._table.setVerticalHeaderLabels(["Khung gio"])
-        empty_item = QTableWidgetItem("Khong co lich giang day")
+        self._table.setVerticalHeaderLabels(["Khung giờ"])
+        empty_item = QTableWidgetItem("Không có lịch giảng dạy")
         empty_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         empty_item.setForeground(QColor(190, 199, 214, 170))
         self._table.setSpan(0, 0, 1, 7)
