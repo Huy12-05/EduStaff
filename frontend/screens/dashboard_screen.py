@@ -23,10 +23,12 @@ from qfluentwidgets import (
     CaptionLabel,
     PushButton,
     PrimaryPushButton,
+    TransparentPushButton,
     FluentIcon as FIF,
 )
 
 from components.cards import StatCard, SectionHeader
+from components.donut import DonutChart
 from components.loading import LoadingOverlay
 from components.toast import toast_error, toast_success
 from ui.icon_manager import IconManager
@@ -214,6 +216,10 @@ class DashboardScreen(SmoothScrollArea):
             act_scroll.viewport().setStyleSheet("background:transparent;")
 
             self._act_inner.addWidget(act_scroll, stretch=1)
+
+            more_btn = TransparentPushButton(FIF.HISTORY, "  Nhật ký đầy đủ →", self._act_card)
+            more_btn.clicked.connect(lambda: self._navigate_to("screen_audit"))
+            self._act_inner.addWidget(more_btn, alignment=Qt.AlignmentFlag.AlignRight)
             second_row.addWidget(self._act_card, stretch=3)
 
         layout.addLayout(second_row)
@@ -245,6 +251,36 @@ class DashboardScreen(SmoothScrollArea):
         today_scroll.viewport().setStyleSheet("background:transparent;")
         self._today_inner.addWidget(today_scroll, stretch=1)
         third_row.addWidget(self._today_card, stretch=2)
+
+        # Lecturer status donut card
+        self._status_card = self._make_card("users", "Trạng Thái Giảng Viên")
+        _si = self._status_card.property("inner_layout")
+
+        donut_row = QHBoxLayout()
+        donut_row.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._status_donut = DonutChart(size=100, hole=0.55)
+        donut_row.addWidget(self._status_donut)
+        _si.addLayout(donut_row)
+
+        _STATUS_ITEMS = [
+            ("Đang dạy",  "#3FB950"),
+            ("Tạm nghỉ",  "#D29922"),
+            ("Nghỉ việc", "#F85149"),
+        ]
+        self._status_lbls: dict = {}
+        for label, color in _STATUS_ITEMS:
+            leg_h = QHBoxLayout()
+            leg_h.setSpacing(8)
+            dot = QLabel("●")
+            dot.setStyleSheet(f"color:{color}; font-size:10px; background:transparent;")
+            lbl = CaptionLabel(f"{label}: —")
+            lbl.setStyleSheet("background:transparent;")
+            leg_h.addWidget(dot)
+            leg_h.addWidget(lbl, stretch=1)
+            self._status_lbls[label] = lbl
+            _si.addLayout(leg_h)
+        _si.addStretch()
+        third_row.addWidget(self._status_card, stretch=2)
 
         if self.is_admin:
             self._quick_card = self._make_card("rocket-launch", "Thao Tác Nhanh", stretch=2)
@@ -347,14 +383,22 @@ class DashboardScreen(SmoothScrollArea):
         self._card_dept.set_value(str(overview.get("total_departments", 0)))
         self._card_sched.set_value(str(overview.get("total_schedules", 0)))
         self._card_acc.set_value(str(overview.get("total_accounts", 0)))
+        active   = lecturer_status.get("active", 0)
+        on_leave = lecturer_status.get("on_leave", 0)
+        resigned = lecturer_status.get("resigned", 0)
         self._card_lect.set_meta_text(
-            "Đang dạy: {active}   •   Tạm nghỉ: {on_leave}   •   Nghỉ việc: {resigned}".format(
-                active=lecturer_status.get("active", 0),
-                on_leave=lecturer_status.get("on_leave", 0),
-                resigned=lecturer_status.get("resigned", 0),
-            ),
+            f"Đang dạy: {active}   •   Tạm nghỉ: {on_leave}   •   Nghỉ việc: {resigned}",
             color="#6E7681",
         )
+        # Donut + legend
+        self._status_donut.set_data([
+            ("Đang dạy",  active,   "#3FB950"),
+            ("Tạm nghỉ",  on_leave, "#D29922"),
+            ("Nghỉ việc", resigned, "#F85149"),
+        ])
+        for label, count in [("Đang dạy", active), ("Tạm nghỉ", on_leave), ("Nghỉ việc", resigned)]:
+            if label in self._status_lbls:
+                self._status_lbls[label].setText(f"{label}: {count}")
 
         # Dept table
         self._dept_table.setRowCount(0)
@@ -494,13 +538,19 @@ class DashboardScreen(SmoothScrollArea):
                 f"QProgressBar::chunk{{background:{color};border-radius:4px;}}"
             )
 
+            pct_lbl = QLabel(f"{pct}%")
+            pct_lbl.setFixedWidth(30)
+            pct_lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            pct_lbl.setStyleSheet("color:#484F58; font-size:11px; background:transparent;")
+
             cnt_lbl = QLabel(str(count))
-            cnt_lbl.setFixedWidth(36)
+            cnt_lbl.setFixedWidth(30)
             cnt_lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             cnt_lbl.setStyleSheet(f"color:{color}; font-size:12px; font-weight:600; background:transparent;")
 
             row_h.addWidget(name_lbl)
             row_h.addWidget(bar, stretch=1)
+            row_h.addWidget(pct_lbl)
             row_h.addWidget(cnt_lbl)
             layout.addWidget(row_w)
 
@@ -634,33 +684,102 @@ class DashboardScreen(SmoothScrollArea):
         path, _ = QFileDialog.getSaveFileName(
             self,
             "Lưu báo cáo Dashboard",
-            f"dashboard_report_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
-            "CSV (*.csv)",
+            f"dashboard_report_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
+            "Excel (*.xlsx);;CSV (*.csv)",
         )
         if not path:
             return
 
         try:
-            with open(path, "w", newline="", encoding="utf-8-sig") as f:
-                writer = csv.writer(f)
-                writer.writerow(["Mục", "Giá trị"])
-                overview = self._latest_data.get("overview", {})
-                writer.writerow(["Tổng giảng viên", overview.get("total_lecturers", 0)])
-                writer.writerow(["Số khoa / bộ môn", overview.get("total_departments", 0)])
-                writer.writerow(["Lịch giảng dạy", overview.get("total_schedules", 0)])
-                writer.writerow(["Tài khoản", overview.get("total_accounts", 0)])
-
-                writer.writerow([])
-                writer.writerow(["Trạng thái giảng viên", "Số lượng"])
-                status = self._latest_data.get("lecturer_status", {})
-                writer.writerow(["Đang dạy", status.get("active", 0)])
-                writer.writerow(["Tạm nghỉ", status.get("on_leave", 0)])
-                writer.writerow(["Nghỉ việc", status.get("resigned", 0)])
-                writer.writerow(["Khác", status.get("other", 0)])
-
-            toast_success(self.window(), "Xuất báo cáo Dashboard thành công")
+            if path.lower().endswith(".xlsx"):
+                self._export_xlsx(path)
+            else:
+                self._export_csv(path)
+            toast_success(self.window(), "Xuất báo cáo thành công")
         except Exception as e:
             toast_error(self.window(), str(e))
+
+    def _export_xlsx(self, path: str):
+        import openpyxl
+        from openpyxl.styles import Font, Alignment
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Tổng Quan"
+
+        ws.merge_cells("A1:B1")
+        ws["A1"] = f"Báo cáo Dashboard — {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+        ws["A1"].font = Font(bold=True, size=13)
+        ws.row_dimensions[1].height = 24
+
+        overview = self._latest_data.get("overview", {})
+        status   = self._latest_data.get("lecturer_status", {})
+
+        ws.append([])
+        header_row = ws.append(["Chỉ số", "Giá trị"])
+        for cell in ws[ws.max_row]:
+            cell.font = Font(bold=True)
+        for label, val in [
+            ("Tổng giảng viên",   overview.get("total_lecturers", 0)),
+            ("  Đang dạy",        status.get("active", 0)),
+            ("  Tạm nghỉ",        status.get("on_leave", 0)),
+            ("  Nghỉ việc",       status.get("resigned", 0)),
+            ("Số khoa / bộ môn",  overview.get("total_departments", 0)),
+            ("Lịch giảng dạy",    overview.get("total_schedules", 0)),
+            ("Tài khoản",         overview.get("total_accounts", 0)),
+        ]:
+            ws.append([label, val])
+        ws.column_dimensions["A"].width = 26
+        ws.column_dimensions["B"].width = 12
+
+        # Sheet 2 — by department
+        ws2 = wb.create_sheet("Theo Khoa")
+        ws2.append(["Tên Khoa", "Mã Khoa", "Số Giảng Viên"])
+        for cell in ws2[1]:
+            cell.font = Font(bold=True)
+        for d in self._latest_data.get("by_dept", []):
+            ws2.append([d.get("department_name", ""), d.get("department_code", ""), d.get("count", 0)])
+        ws2.column_dimensions["A"].width = 30
+        ws2.column_dimensions["B"].width = 12
+        ws2.column_dimensions["C"].width = 16
+
+        # Sheet 3 — by degree
+        ws3 = wb.create_sheet("Theo Trình Độ")
+        ws3.append(["Trình Độ", "Số Giảng Viên"])
+        for cell in ws3[1]:
+            cell.font = Font(bold=True)
+        for d in self._latest_data.get("by_degree", []):
+            ws3.append([d.get("degree", ""), d.get("count", 0)])
+        ws3.column_dimensions["A"].width = 12
+        ws3.column_dimensions["B"].width = 16
+
+        # Sheet 4 — by position
+        ws4 = wb.create_sheet("Theo Chức Vụ")
+        ws4.append(["Chức Vụ", "Số Giảng Viên"])
+        for cell in ws4[1]:
+            cell.font = Font(bold=True)
+        for d in self._latest_data.get("by_position", []):
+            ws4.append([d.get("position", "") or "Chưa phân công", d.get("count", 0)])
+        ws4.column_dimensions["A"].width = 26
+        ws4.column_dimensions["B"].width = 16
+
+        wb.save(path)
+
+    def _export_csv(self, path: str):
+        with open(path, "w", newline="", encoding="utf-8-sig") as f:
+            writer = csv.writer(f)
+            overview = self._latest_data.get("overview", {})
+            status   = self._latest_data.get("lecturer_status", {})
+            writer.writerow(["Mục", "Giá trị"])
+            writer.writerow(["Tổng giảng viên", overview.get("total_lecturers", 0)])
+            writer.writerow(["Số khoa / bộ môn", overview.get("total_departments", 0)])
+            writer.writerow(["Lịch giảng dạy", overview.get("total_schedules", 0)])
+            writer.writerow(["Tài khoản", overview.get("total_accounts", 0)])
+            writer.writerow([])
+            writer.writerow(["Trạng thái", "Số lượng"])
+            writer.writerow(["Đang dạy",  status.get("active", 0)])
+            writer.writerow(["Tạm nghỉ",  status.get("on_leave", 0)])
+            writer.writerow(["Nghỉ việc", status.get("resigned", 0)])
 
     def showEvent(self, event):
         super().showEvent(event)

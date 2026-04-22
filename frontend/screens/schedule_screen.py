@@ -212,6 +212,46 @@ class SaveScheduleWorker(QThread):
             self.error.emit(str(e))
 
 
+class ConflictCheckWorker(QThread):
+    finished = Signal(list)  # list of conflict description strings
+    error    = Signal(str)
+
+    def __init__(self, data: dict, current_id: int = None):
+        super().__init__()
+        self.data       = data
+        self.current_id = current_id
+
+    def run(self):
+        try:
+            result = schedule_api.get_schedules(
+                day_of_week=self.data["day_of_week"],
+                semester=self.data["semester"],
+                academic_year=self.data["academic_year"],
+                size=500,
+            )
+            schedules = result.get("items", []) if isinstance(result, dict) else []
+
+            new_start = self.data["start_time"]
+            new_end   = self.data["end_time"]
+            room      = self.data["room"].strip().lower()
+
+            conflicts = []
+            for s in schedules:
+                if s.get("id") == self.current_id:
+                    continue
+                if (s.get("room") or "").strip().lower() != room:
+                    continue
+                ex_start = (s.get("start_time") or "")[:5]
+                ex_end   = (s.get("end_time")   or "")[:5]
+                if ex_start and ex_end and new_start < ex_end and new_end > ex_start:
+                    lect = (s.get("lecturer") or {}).get("full_name", "—")
+                    conflicts.append(f"• {lect}: {ex_start}–{ex_end}")
+
+            self.finished.emit(conflicts)
+        except Exception as e:
+            self.error.emit(str(e))
+
+
 class DeleteScheduleWorker(QThread):
     finished = Signal()
     error    = Signal(str)
@@ -385,9 +425,29 @@ class ScheduleFormDialog(FluentFormDialog):
         if not self._validate():
             return
         self.set_loading(True)
-        self._save_worker = SaveScheduleWorker(
-            self._mode, self._collect(), self._schedule.get("id")
-        )
+        data = self._collect()
+        self._check_worker = ConflictCheckWorker(data, self._schedule.get("id"))
+        self._check_worker.finished.connect(lambda conflicts: self._after_conflict_check(data, conflicts))
+        self._check_worker.error.connect(lambda _: self._do_save(data))
+        self._check_worker.start()
+
+    def _after_conflict_check(self, data: dict, conflicts: list):
+        self.set_loading(False)
+        if conflicts:
+            detail = "\n".join(conflicts[:5])
+            if not confirm(
+                "Xung đột phòng học",
+                f"Phòng {data['room']} đã có lịch trùng ca trong {data['day_of_week']}:\n{detail}\n\nVẫn tiếp tục lưu?",
+                self,
+                yes_text="Vẫn lưu",
+                cancel_text="Hủy",
+            ):
+                return
+        self._do_save(data)
+
+    def _do_save(self, data: dict):
+        self.set_loading(True)
+        self._save_worker = SaveScheduleWorker(self._mode, data, self._schedule.get("id"))
         self._save_worker.finished.connect(self._on_saved)
         self._save_worker.error.connect(self._on_err)
         self._save_worker.start()
