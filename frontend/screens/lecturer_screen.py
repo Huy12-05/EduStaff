@@ -190,7 +190,7 @@ class LecturerDetailDialog(FluentFormDialog):
 
         layout.addWidget(field_row([
             ("Khoa",       dept.get("name", "—")),
-            ("Học vị",     lect.get("degree", "—")),
+            ("Trình độ",     lect.get("degree", "—")),
         ]))
         layout.addWidget(field_row([
             ("Chức vụ",    lect.get("position", "—") or "—"),
@@ -319,7 +319,7 @@ class LecturerFormDialog(FluentFormDialog):
         idx = self._degree_combo.findData(lect.get("degree", "ThS"))
         if idx >= 0:
             self._degree_combo.setCurrentIndex(idx)
-        degree_field = FormField("Học Vị *", self._degree_combo)
+        degree_field = FormField("Trình Độ *", self._degree_combo)
 
         layout.addLayout(row2(dept_field, degree_field))
 
@@ -504,7 +504,7 @@ class LecturerScreen(QWidget):
         self._dept_filter.currentIndexChanged.connect(self._on_filter_changed)
         filter_row.addWidget(self._dept_filter)
 
-        filter_row.addWidget(BodyLabel("Học vị:"))
+        filter_row.addWidget(BodyLabel("Trình độ:"))
         self._degree_filter = ComboBox(self)
         self._degree_filter.setFixedWidth(110)
         self._degree_filter.addItem("Tất cả", userData="")
@@ -533,13 +533,14 @@ class LecturerScreen(QWidget):
         table_v.setSpacing(0)
 
         COLS = ["#", "Mã GV", "Họ & Tên", "Email", "SĐT",
-                "Khoa", "Học vị", "Chức vụ", "Trạng thái", "Thao tác"]
+                "Khoa", "Trình độ", "Chức vụ", "Trạng thái", "Thao tác"]
         self._table = TableWidget(self)
         self._table.setColumnCount(len(COLS))
         self._table.setHorizontalHeaderLabels(COLS)
         self._table.verticalHeader().setVisible(False)
         self._table.setAlternatingRowColors(True)
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self._table.setSelectionMode(QTableWidget.SelectionMode.ExtendedSelection)
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self._table.setShowGrid(False)
         self._table.setSortingEnabled(True)
@@ -578,6 +579,27 @@ class LecturerScreen(QWidget):
         table_v.addWidget(self._table, stretch=1)
         table_v.addWidget(self._empty)
         layout.addWidget(table_card, stretch=1)
+
+        # Bulk action bar (hidden until multi-select)
+        if self.is_admin:
+            self._bulk_bar = ElevatedCardWidget()
+            bulk_h = QHBoxLayout(self._bulk_bar)
+            bulk_h.setContentsMargins(16, 8, 16, 8)
+            bulk_h.setSpacing(12)
+            self._bulk_count_lbl = BodyLabel("0 mục được chọn")
+            self._bulk_count_lbl.setStyleSheet("color:#58A6FF;")
+            clear_btn = PushButton("  Bỏ chọn", self)
+            clear_btn.clicked.connect(self._table.clearSelection)
+            self._bulk_del_btn = PushButton(FIF.DELETE, "  Xóa đã chọn", self)
+            self._bulk_del_btn.setStyleSheet("PushButton{color:#F85149;}")
+            self._bulk_del_btn.clicked.connect(self._on_bulk_delete)
+            bulk_h.addWidget(self._bulk_count_lbl)
+            bulk_h.addStretch()
+            bulk_h.addWidget(clear_btn)
+            bulk_h.addWidget(self._bulk_del_btn)
+            self._bulk_bar.hide()
+            layout.addWidget(self._bulk_bar)
+            self._table.selectionModel().selectionChanged.connect(self._on_selection_changed)
 
         # Pagination
         self._pagination = PaginationBar(self)
@@ -838,6 +860,52 @@ class LecturerScreen(QWidget):
                 toast_success(self.window(), "Xuất PDF thành công!")
         except Exception as e:
             toast_error(self.window(), str(e))
+
+    def _on_selection_changed(self):
+        if not self.is_admin:
+            return
+        rows = set(idx.row() for idx in self._table.selectedIndexes())
+        count = len(rows)
+        if count > 1:
+            self._bulk_count_lbl.setText(f"{count} giảng viên được chọn")
+            self._bulk_bar.show()
+        else:
+            self._bulk_bar.hide()
+
+    def _on_bulk_delete(self):
+        rows = sorted(set(idx.row() for idx in self._table.selectedIndexes()))
+        lecturers = [self._row_data[r] for r in rows if r < len(self._row_data)]
+        if not lecturers:
+            return
+        names = ", ".join(l.get("full_name", "") for l in lecturers[:3])
+        if len(lecturers) > 3:
+            names += f" và {len(lecturers) - 3} người khác"
+        if not confirm(
+            "Xác nhận xóa hàng loạt",
+            f"Xóa {len(lecturers)} giảng viên:\n{names}\n\nThao tác này không thể hoàn tác.",
+            parent=self,
+            yes_text="Xóa tất cả",
+            cancel_text="Hủy",
+        ):
+            return
+        self._bulk_bar.hide()
+        self._bulk_ids = [l["id"] for l in lecturers]
+        self._bulk_total = len(self._bulk_ids)
+        self._bulk_delete_next()
+
+    def _bulk_delete_next(self):
+        if not self._bulk_ids:
+            toast_success(self.window(), f"Đã xóa {self._bulk_total} giảng viên thành công!")
+            self.refresh()
+            return
+        lect_id = self._bulk_ids.pop(0)
+        w = DeleteLecturerWorker(lect_id)
+        w.finished.connect(self._bulk_delete_next)
+        w.finished.connect(w.deleteLater)
+        w.error.connect(lambda msg: toast_error(self.window(), msg))
+        w.error.connect(w.deleteLater)
+        w.start()
+        self._del_worker = w
 
     def showEvent(self, event):
         super().showEvent(event)

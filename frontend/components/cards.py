@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor
 from qfluentwidgets import ElevatedCardWidget, BodyLabel, CaptionLabel, IconWidget, FluentIcon
 from ui.icon_manager import IconManager
@@ -27,59 +27,95 @@ def _apply_soft_shadow(widget: QWidget):
 class StatCard(ElevatedCardWidget):
     """
     Dashboard stat card:
-      ┌─────────────────────────────────┐
-      │  [icon]          [accent bar]   │
-      │                                 │
-      │  1 234                          │  ← big number
-      │  Tổng Giảng Viên               │  ← label
-      └─────────────────────────────────┘
+      ┌────────────────────────────────────┐
+      │  [●icon bubble]      [══ bar]      │
+      │  1 234                             │
+      │  Tổng Giảng Viên                  │
+      │  Đang dạy: 26 • Tạm nghỉ: 2      │
+      └────────────────────────────────────┘
     """
+
+    clicked = Signal()
 
     def __init__(self, icon_name: str, value: str, label: str,
                  accent: str = "#0099FF", parent=None):
         super().__init__(parent)
         self._accent = accent
-        self.setFixedHeight(120)
+        self.setFixedHeight(130)
         self.setObjectName("statCard")
         _apply_soft_shadow(self)
 
         root = QVBoxLayout(self)
-        root.setContentsMargins(20, 16, 20, 16)
-        root.setSpacing(6)
+        root.setContentsMargins(18, 14, 18, 14)
+        root.setSpacing(5)
 
-        # Top row: icon + accent pill
+        # Top row: icon bubble + accent bar
         top = QHBoxLayout()
-        self._icon_lbl = QLabel()
-        self._icon_lbl.setStyleSheet("background: transparent;")
-        self._icon_lbl.setPixmap(
-            IconManager.get(icon_name, accent, 22).pixmap(22, 22)
+        top.setSpacing(0)
+
+        r = int(accent[1:3], 16)
+        g = int(accent[3:5], 16)
+        b = int(accent[5:7], 16)
+
+        icon_bubble = QWidget()
+        icon_bubble.setFixedSize(42, 42)
+        icon_bubble.setStyleSheet(
+            f"QWidget{{background:rgba({r},{g},{b},45);"
+            f"border-radius:10px;}}"
         )
-        top.addWidget(self._icon_lbl)
+        bubble_h = QHBoxLayout(icon_bubble)
+        bubble_h.setContentsMargins(0, 0, 0, 0)
+        bubble_h.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._icon_lbl = QLabel()
+        self._icon_lbl.setStyleSheet("background:transparent;")
+        self._icon_lbl.setPixmap(IconManager.get(icon_name, accent, 22).pixmap(22, 22))
+        bubble_h.addWidget(self._icon_lbl)
+
+        top.addWidget(icon_bubble)
         top.addStretch()
 
-        # Small colored accent bar
         bar = QFrame()
         bar.setObjectName("accentBar")
-        bar.setFixedSize(36, 4)
-        bar.setStyleSheet(f"background-color:{accent}; border-radius:2px;")
-        top.addWidget(bar)
+        bar.setFixedSize(40, 4)
+        bar.setStyleSheet(f"background:{accent}; border-radius:2px;")
+        top.addWidget(bar, alignment=Qt.AlignmentFlag.AlignVCenter)
         root.addLayout(top)
+
+        root.addSpacing(2)
 
         # Value
         self._value_lbl = QLabel(value)
         self._value_lbl.setStyleSheet(
-            f"font-size:28px; font-weight:700; color:{accent}; background: transparent;"
+            f"font-size:28px; font-weight:700; color:{accent}; background:transparent;"
         )
         root.addWidget(self._value_lbl)
 
         # Label
         self._label_lbl = CaptionLabel(label, self)
-        self._label_lbl.setStyleSheet("color:#8B949E; background: transparent;")
+        self._label_lbl.setStyleSheet("color:#8B949E; background:transparent;")
         root.addWidget(self._label_lbl)
+
+        self._meta_lbl = CaptionLabel("", self)
+        self._meta_lbl.setStyleSheet("color:#6E7681; background:transparent; font-size:11px;")
+        self._meta_lbl.setWordWrap(False)
+        self._meta_lbl.hide()
+        root.addWidget(self._meta_lbl)
         root.addStretch()
+
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
 
     def set_value(self, value: str):
         self._value_lbl.setText(value)
+
+    def set_meta_text(self, text: str, color: str = "#6E7681"):
+        self._meta_lbl.setText(text)
+        self._meta_lbl.setStyleSheet(f"color:{color}; background: transparent;")
+        self._meta_lbl.setVisible(bool(text))
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.clicked.emit()
+        super().mousePressEvent(event)
 
 
 class SectionHeader(QWidget):
