@@ -708,11 +708,45 @@ class DatabaseStore:
     def overview_stats(self) -> dict:
         with SessionLocal() as db:
             return {
-                "total_lecturers": db.scalar(select(func.count(Lecturer.id))) or 0,
+                "total_lecturers": db.scalar(
+                    select(func.count(Lecturer.id)).where(Lecturer.is_deleted.is_(False))
+                ) or 0,
                 "total_departments": db.scalar(select(func.count(Department.id))) or 0,
                 "total_schedules": db.scalar(select(func.count(Schedule.id))) or 0,
                 "total_accounts": db.scalar(select(func.count(Account.id))) or 0,
             }
+
+    def lecturer_status_stats(self) -> dict:
+        with SessionLocal() as db:
+            rows = db.execute(
+                select(Lecturer.status, func.count(Lecturer.id))
+                .where(Lecturer.is_deleted.is_(False))
+                .group_by(Lecturer.status)
+            ).all()
+
+            counts: dict[str, int] = {
+                "active": 0,
+                "on_leave": 0,
+                "resigned": 0,
+                "other": 0,
+            }
+            status_alias = {
+                "active": "active",
+                "on_leave": "on_leave",
+                "onleave": "on_leave",
+                "leave": "on_leave",
+                "inactive": "resigned",
+                "resigned": "resigned",
+                "quit": "resigned",
+                "terminated": "resigned",
+            }
+
+            for status, count in rows:
+                normalized = status_alias.get((status or "").strip().lower(), "other")
+                counts[normalized] += int(count or 0)
+
+            counts["total"] = sum(counts.values())
+            return counts
 
     def stats_by_department(self) -> list[dict]:
         with SessionLocal() as db:

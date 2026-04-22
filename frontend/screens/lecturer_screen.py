@@ -190,7 +190,7 @@ class LecturerDetailDialog(FluentFormDialog):
 
         layout.addWidget(field_row([
             ("Khoa",       dept.get("name", "—")),
-            ("Học vị",     lect.get("degree", "—")),
+            ("Trình độ",     lect.get("degree", "—")),
         ]))
         layout.addWidget(field_row([
             ("Chức vụ",    lect.get("position", "—") or "—"),
@@ -319,7 +319,7 @@ class LecturerFormDialog(FluentFormDialog):
         idx = self._degree_combo.findData(lect.get("degree", "ThS"))
         if idx >= 0:
             self._degree_combo.setCurrentIndex(idx)
-        degree_field = FormField("Học Vị *", self._degree_combo)
+        degree_field = FormField("Trình Độ *", self._degree_combo)
 
         layout.addLayout(row2(dept_field, degree_field))
 
@@ -504,7 +504,7 @@ class LecturerScreen(QWidget):
         self._dept_filter.currentIndexChanged.connect(self._on_filter_changed)
         filter_row.addWidget(self._dept_filter)
 
-        filter_row.addWidget(BodyLabel("Học vị:"))
+        filter_row.addWidget(BodyLabel("Trình độ:"))
         self._degree_filter = ComboBox(self)
         self._degree_filter.setFixedWidth(110)
         self._degree_filter.addItem("Tất cả", userData="")
@@ -533,7 +533,7 @@ class LecturerScreen(QWidget):
         table_v.setSpacing(0)
 
         COLS = ["#", "Mã GV", "Họ & Tên", "Email", "SĐT",
-                "Khoa", "Học vị", "Chức vụ", "Trạng thái", "Thao tác"]
+                "Khoa", "Trình độ", "Chức vụ", "Trạng thái", "Thao tác"]
         self._table = TableWidget(self)
         self._table.setColumnCount(len(COLS))
         self._table.setHorizontalHeaderLabels(COLS)

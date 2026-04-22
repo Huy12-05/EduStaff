@@ -17,3 +17,7 @@ def get_by_degree() -> list:
 
 def get_by_position() -> list:
     return client.get("/stats/by-position") or []
+
+
+def get_lecturer_status() -> dict:
+    return client.get("/stats/lecturer-status") or {}

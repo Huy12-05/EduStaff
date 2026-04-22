@@ -24,3 +24,8 @@ def by_degree(_: dict = Depends(get_current_user)) -> list[dict]:
 @router.get("/by-position")
 def by_position(_: dict = Depends(get_current_user)) -> list[dict]:
     return STORE.stats_by_position()
+
+
+@router.get("/lecturer-status")
+def lecturer_status(_: dict = Depends(get_current_user)) -> dict:
+    return STORE.lecturer_status_stats()
